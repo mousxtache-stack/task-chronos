@@ -25,8 +25,8 @@ export function AddTaskDialog({ onAdd }: AddTaskDialogProps) {
     e.preventDefault();
     if (!title.trim() || !date) {
       toast({
-        title: "Error",
-        description: "Please fill in all fields",
+        title: "Erreur",
+        description: "Veuillez remplir tous les champs",
         variant: "destructive",
       });
       return;
@@ -40,21 +40,24 @@ export function AddTaskDialog({ onAdd }: AddTaskDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2">
-          <Plus size={16} />
-          Add Task
+        <Button className="gap-2 px-6 py-6 text-base font-medium shadow-lg hover:shadow-primary/25 hover:scale-105 transition-all duration-300 bg-primary hover:bg-primary/90">
+          <Plus size={20} />
+          Ajouter une tâche
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add New Task</DialogTitle>
+          <DialogTitle className="text-2xl font-semibold">
+            Nouvelle tâche
+          </DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+        <form onSubmit={handleSubmit} className="space-y-6 mt-6">
           <div className="space-y-2">
             <Input
-              placeholder="Task title"
+              placeholder="Titre de la tâche"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              className="h-12"
             />
           </div>
           <div className="space-y-2">
@@ -62,10 +65,14 @@ export function AddTaskDialog({ onAdd }: AddTaskDialogProps) {
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
+              className="h-12"
             />
           </div>
-          <Button type="submit" className="w-full">
-            Add Task
+          <Button
+            type="submit"
+            className="w-full h-12 text-base font-medium shadow-lg hover:shadow-primary/25 hover:scale-105 transition-all duration-300"
+          >
+            Ajouter
           </Button>
         </form>
       </DialogContent>

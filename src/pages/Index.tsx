@@ -17,8 +17,8 @@ const Index = () => {
     };
     setTasks([...tasks, newTask]);
     toast({
-      title: "Task added",
-      description: "Your task has been added successfully",
+      title: "Tâche ajoutée",
+      description: "Votre tâche a été ajoutée avec succès",
     });
   };
 
@@ -33,16 +33,18 @@ const Index = () => {
   const handleDelete = (id: string) => {
     setTasks(tasks.filter((task) => task.id !== id));
     toast({
-      title: "Task deleted",
-      description: "Your task has been deleted successfully",
+      title: "Tâche supprimée",
+      description: "Votre tâche a été supprimée avec succès",
     });
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b p-4">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Timeline Tasks</h1>
+      <header className="border-b bg-white/50 backdrop-blur-sm sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto flex flex-col gap-4 items-center justify-center py-8">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            Timeline Tasks
+          </h1>
           <AddTaskDialog onAdd={handleAddTask} />
         </div>
       </header>
