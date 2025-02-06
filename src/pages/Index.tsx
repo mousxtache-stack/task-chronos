@@ -10,7 +10,6 @@ const Index = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const { toast } = useToast();
 
-  // Charger les tâches au démarrage
   useEffect(() => {
     loadTasks();
   }, []);
@@ -44,9 +43,14 @@ const Index = () => {
 
   const handleAddTask = async (title: string, date: Date) => {
     try {
+      // Convertir la date en format ISO string pour Supabase
       const { data, error } = await supabase
         .from("tasks")
-        .insert([{ title, date, completed: false }])
+        .insert([{ 
+          title, 
+          date: date.toISOString().split('T')[0], 
+          completed: false 
+        }])
         .select()
         .single();
 
