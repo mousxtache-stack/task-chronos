@@ -16,6 +16,11 @@ export function TaskCard({ task, onComplete, onDelete }: TaskCardProps) {
           <h3 className={cn("font-medium", task.completed && "line-through")}>
             {task.title}
           </h3>
+          {task.description && (
+            <p className={cn("text-sm text-muted-foreground mt-1", task.completed && "line-through")}>
+              {task.description}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <button

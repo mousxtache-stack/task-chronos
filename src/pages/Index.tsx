@@ -32,6 +32,7 @@ const Index = () => {
         const formattedTasks = data.map((task): Task => ({
           id: task.id,
           title: task.title,
+          description: task.description || undefined,
           date: new Date(task.date),
           completed: task.completed || false,
         }));
@@ -46,7 +47,7 @@ const Index = () => {
     }
   };
 
-  const handleAddTask = async (title: string, date: Date) => {
+  const handleAddTask = async (title: string, description: string, date: Date) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -63,6 +64,7 @@ const Index = () => {
         .from("tasks")
         .insert([{ 
           title, 
+          description: description || null,
           date: date.toISOString().split('T')[0], 
           completed: false,
           user_id: user.id
@@ -76,6 +78,7 @@ const Index = () => {
         const newTask: Task = {
           id: data.id,
           title: data.title,
+          description: data.description || undefined,
           date: new Date(data.date),
           completed: false,
         };

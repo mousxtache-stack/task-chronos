@@ -7,17 +7,19 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 
 interface AddTaskDialogProps {
-  onAdd: (title: string, date: Date) => void;
+  onAdd: (title: string, description: string, date: Date) => void;
 }
 
 export function AddTaskDialog({ onAdd }: AddTaskDialogProps) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
   const { toast } = useToast();
 
@@ -26,13 +28,14 @@ export function AddTaskDialog({ onAdd }: AddTaskDialogProps) {
     if (!title.trim() || !date) {
       toast({
         title: "Erreur",
-        description: "Veuillez remplir tous les champs",
+        description: "Veuillez remplir tous les champs obligatoires",
         variant: "destructive",
       });
       return;
     }
-    onAdd(title, new Date(date));
+    onAdd(title, description, new Date(date));
     setTitle("");
+    setDescription("");
     setDate("");
     setOpen(false);
   };
@@ -58,6 +61,14 @@ export function AddTaskDialog({ onAdd }: AddTaskDialogProps) {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="h-12"
+            />
+          </div>
+          <div className="space-y-2">
+            <Textarea
+              placeholder="Description (optionnelle)"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="min-h-[100px] resize-none"
             />
           </div>
           <div className="space-y-2">
