@@ -16,9 +16,14 @@ const Index = () => {
 
   const loadTasks = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) return;
+
       const { data, error } = await supabase
         .from("tasks")
         .select("*")
+        .eq('user_id', user.id)
         .order("date", { ascending: true });
 
       if (error) throw error;
@@ -43,13 +48,24 @@ const Index = () => {
 
   const handleAddTask = async (title: string, date: Date) => {
     try {
-      // Convertir la date en format ISO string pour Supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: "Erreur",
+          description: "Vous devez être connecté pour ajouter une tâche",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { data, error } = await supabase
         .from("tasks")
         .insert([{ 
           title, 
           date: date.toISOString().split('T')[0], 
-          completed: false 
+          completed: false,
+          user_id: user.id
         }])
         .select()
         .single();
@@ -80,13 +96,18 @@ const Index = () => {
 
   const handleComplete = async (id: string) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) return;
+
       const task = tasks.find((t) => t.id === id);
       if (!task) return;
 
       const { error } = await supabase
         .from("tasks")
         .update({ completed: !task.completed })
-        .eq("id", id);
+        .eq("id", id)
+        .eq("user_id", user.id);
 
       if (error) throw error;
 
@@ -106,7 +127,15 @@ const Index = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase.from("tasks").delete().eq("id", id);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) return;
+
+      const { error } = await supabase
+        .from("tasks")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", user.id);
 
       if (error) throw error;
 
