@@ -63,3 +63,133 @@
 .slide-in {
   animation: slideIn 0.3s ease-out forwards;
 }
+
+/* Styles pour les différents modes d'affichage */
+.layout-normal .tasks-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.layout-right .tasks-container {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+}
+
+.layout-right .tasks-list {
+  order: 1;
+}
+
+.layout-right .tasks-controls {
+  order: 2;
+  position: sticky;
+  top: 1rem;
+}
+
+.layout-compact .tasks-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.layout-compact .task-item {
+  padding: 0.5rem;
+}
+
+.layout-grid .tasks-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
+  gap: 2rem;
+}
+
+.layout-grid .task-item {
+  width: 170%;
+  height: auto;
+  display: block;
+}
+
+.layout-grid .task-card {
+  height: auto;
+  display: block;
+  padding: 2rem;
+}
+
+.layout-grid .task-card .task-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.layout-grid .task-card .task-description {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+  margin-bottom: 1rem;
+  flex-grow: 1;
+}
+
+.layout-grid .task-card .task-actions {
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 1rem;
+}
+
+.layout-grid .task-card .task-badge {
+  font-size: 0.8rem;
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  display: inline-block;
+  margin-top: 0.5rem;
+}
+
+/* Thèmes de l'application */
+
+/* Thème par défaut (violet/blanc) */
+.theme-default {
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+  --primary: 262 83.3% 57.8%;  /* Violet */
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 262 83.3% 57.8%;  /* Violet */
+  --accent-foreground: 222.2 47.4% 11.2%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 262 83.3% 57.8%;  /* Violet */
+}
+
+/* Thème noir et blanc */
+.theme-blackwhite {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 0%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 0%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 0%;
+  --primary: 0 0% 0%;  /* Noir */
+  --primary-foreground: 0 0% 100%; /* Blanc */
+  --secondary: 0 0% 96.1%;
+  --secondary-foreground: 0 0% 0%;
+  --muted: 0 0% 96.1%;
+  --muted-foreground: 0 0% 45%;
+  --accent: 0 0% 0%;  /* Noir */
+  --accent-foreground: 0 0% 100%; /* Blanc */
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 0% 85%;
+  --input: 0 0% 85%;
+  --ring: 0 0% 0%;  /* Noir */
+}

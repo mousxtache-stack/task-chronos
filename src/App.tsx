@@ -8,6 +8,10 @@ import { supabase } from "./integrations/supabase/client";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import { Profile } from "./pages/Profile"; // Importation du composant Profile
+import { LayoutProvider } from "./lib/context/LayoutContext";
+import { ThemeProvider } from "./lib/context/ThemeContext";
+import { AlertProvider } from "./lib/context/AlertContext";
 
 const queryClient = new QueryClient();
 
@@ -37,33 +41,50 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route
-              path="/"
-              element={
-                session ? (
-                  <Index />
-                ) : (
-                  <Navigate to="/auth" replace />
-                )
-              }
-            />
-            <Route
-              path="/auth"
-              element={
-                !session ? (
-                  <Auth />
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              }
-            />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+        <ThemeProvider>
+          <LayoutProvider>
+            <AlertProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Routes>
+                  <Route
+                    path="/"
+                    element={
+                      session ? (
+                        <Index />
+                      ) : (
+                        <Navigate to="/auth" replace />
+                      )
+                    }
+                  />
+                  <Route
+                    path="/auth"
+                    element={
+                      !session ? (
+                        <Auth />
+                      ) : (
+                        <Navigate to="/" replace />
+                      )
+                    }
+                  />
+                  {/* Nouvelle route pour la page Profile */}
+                  <Route
+                    path="/profile"
+                    element={
+                      session ? (
+                        <Profile />
+                      ) : (
+                        <Navigate to="/auth" replace />
+                      )
+                    }
+                  />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </AlertProvider>
+          </LayoutProvider>
+        </ThemeProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

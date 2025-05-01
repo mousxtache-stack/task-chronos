@@ -1,0 +1,70 @@
+/* Styles pour l'animation de blur */
+.blur-text-element {
+  display: inline-block;
+  will-change: filter, opacity, transform;
+  opacity: 0;
+  filter: blur(16px);
+  transform: translateY(-30px);
+  color: white;
+}
+
+/* Conteneur de l'animation avec fond noir */
+.blur-text-container {
+  background-color: black;
+  padding: 2rem;
+  border-radius: 0.5rem;
+  width: 100%;
+  max-width: 800px;
+  display: flex;
+  justify-content: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.blur-text-element.animate {
+  animation: blur-fade-in 0.8s forwards;
+}
+
+.blur-text-element.bottom {
+  transform: translateY(30px);
+}
+
+@keyframes blur-fade-in {
+  0% {
+    opacity: 0;
+    filter: blur(16px);
+    transform: translateY(-30px);
+  }
+  50% {
+    opacity: 0.5;
+    filter: blur(8px);
+    transform: translateY(-15px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+/* Animation pour la direction 'bottom' */
+.blur-text-element.bottom.animate {
+  animation: blur-fade-in-bottom 0.8s forwards;
+}
+
+@keyframes blur-fade-in-bottom {
+  0% {
+    opacity: 0;
+    filter: blur(16px);
+    transform: translateY(30px);
+  }
+  50% {
+    opacity: 0.5;
+    filter: blur(8px);
+    transform: translateY(15px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+} 

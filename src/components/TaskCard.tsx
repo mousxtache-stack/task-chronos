@@ -1,34 +1,90 @@
 import { Task } from "@/lib/types";
-import { Check, Trash2 } from "lucide-react";
+import { Check, Trash2, BookOpen, PencilIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLayout } from "@/lib/context/LayoutContext";
+import { EditTaskDialog } from "./EditTaskDialog";
 
 interface TaskCardProps {
   task: Task;
   onComplete: (id: string) => void;
   onDelete: (id: string) => void;
+  onEdit: (id: string, title: string, description: string, date: Date, isHomework: boolean) => void;
 }
 
-export function TaskCard({ task, onComplete, onDelete }: TaskCardProps) {
+export function TaskCard({ task, onComplete, onDelete, onEdit }: TaskCardProps) {
+  const { layoutMode } = useLayout();
+  const isGridMode = layoutMode === "grid";
+
   return (
-    <div className={cn("task-card slide-in", task.completed && "opacity-50")}>
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1">
-          <h3 className={cn("font-medium", task.completed && "line-through")}>
-            {task.title}
-          </h3>
+    <div className={cn(
+      "task-card slide-in",
+      isGridMode && "block w-full h-auto max-w-xl mx-auto",
+      task.completed && "opacity-50",
+      task.isHomework && "border-l-4 border-blue-500"
+    )}>
+      <div className={cn(
+        isGridMode ? "block" : "flex items-start justify-between gap-2"
+      )}>
+        <div className={cn(isGridMode ? "mb-4" : "flex-1")}> 
+          <div className="flex items-center gap-2 mb-2">
+            {task.isHomework && (
+              <BookOpen size={isGridMode ? 22 : 16} className="text-blue-500" />
+            )}
+            <h3 className={cn(
+              "font-medium",
+              task.completed && "line-through",
+              isGridMode && "task-title text-lg"
+            )}>
+              {task.title}
+            </h3>
+          </div>
           {task.description && (
-            <p className={cn("text-sm text-muted-foreground mt-1", task.completed && "line-through")}>
+            <p className={cn(
+              "text-sm text-muted-foreground mt-1",
+              task.completed && "line-through",
+              isGridMode && "task-description text-base"
+            )}>
               {task.description}
             </p>
           )}
+          {task.isHomework && (
+            <span className={cn(
+              "text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded mt-2 inline-block",
+              isGridMode && "task-badge"
+            )}>
+              Devoir
+            </span>
+          )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className={cn(
+          isGridMode ? "flex items-center gap-2" : "flex items-center gap-2"
+        )}>
+          <EditTaskDialog 
+            task={task}
+            onEdit={onEdit}
+            trigger={
+              <button
+                className={cn(
+                  "p-1 rounded-full hover:bg-secondary transition-colors",
+                  isGridMode && "p-2"
+                )}
+              >
+                <PencilIcon
+                  size={isGridMode ? 22 : 16}
+                  className="text-amber-500"
+                />
+              </button>
+            }
+          />
           <button
             onClick={() => onComplete(task.id)}
-            className="p-1 rounded-full hover:bg-secondary transition-colors"
+            className={cn(
+              "p-1 rounded-full hover:bg-secondary transition-colors",
+              isGridMode && "p-2"
+            )}
           >
             <Check
-              size={16}
+              size={isGridMode ? 22 : 16}
               className={cn(
                 task.completed ? "text-primary" : "text-muted-foreground"
               )}
@@ -36,9 +92,12 @@ export function TaskCard({ task, onComplete, onDelete }: TaskCardProps) {
           </button>
           <button
             onClick={() => onDelete(task.id)}
-            className="p-1 rounded-full hover:bg-destructive/10 transition-colors"
+            className={cn(
+              "p-1 rounded-full hover:bg-destructive/10 transition-colors",
+              isGridMode && "p-2"
+            )}
           >
-            <Trash2 size={16} className="text-destructive" />
+            <Trash2 size={isGridMode ? 22 : 16} className="text-destructive" />
           </button>
         </div>
       </div>
