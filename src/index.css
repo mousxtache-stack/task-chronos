@@ -193,3 +193,41 @@
   --input: 0 0% 85%;
   --ring: 0 0% 0%;  /* Noir */
 }
+/* Styles pour l'animation de la barre */
+.strikethrough-target {
+  position: relative; /* Nécessaire pour positionner le pseudo-élément */
+  /* Optionnel: ajuster la couleur du texte quand complété */
+  /* transition: color 0.3s ease-in-out; */
+}
+
+/* Styles pour le pseudo-élément qui simule la barre */
+.strikethrough-target::after {
+  content: '';
+  position: absolute;
+  top: 50%; /* Centre verticalement */
+  left: 0;
+  height: 1px; /* Épaisseur de la barre */
+  background-color: currentColor; /* Utilise la couleur du texte, ou une couleur fixe comme gray */
+  /* Ou: background-color: theme('colors.gray.500'); si vous utilisez Tailwind JIT/config */
+  width: 0; /* Commence sans largeur */
+  transition: width 0.3s ease-in-out; /* Anime le changement de largeur */
+  transform: translateY(-50%); /* Ajustement fin pour un centrage parfait */
+}
+
+/* Lorsque la classe 'is-completed' est ajoutée, animer la largeur à 100% */
+.strikethrough-target.is-completed::after {
+  width: 100%;
+}
+
+/* Optionnel: changer la couleur du texte quand c'est complété */
+/* .strikethrough-target.is-completed { */
+  /* color: theme('colors.gray.500'); */ /* Exemple avec une couleur Tailwind */
+/* } */
+
+/* Optionnel: transition douce pour l'opacité globale de la carte gérée par Framer Motion ou CSS */
+/* .task-card {
+  transition: opacity 0.3s ease-in-out;
+} */
+/* .task-card-completed { */
+  /* opacity: 0.6; */ /* Géré par Framer Motion maintenant */
+/* } */
