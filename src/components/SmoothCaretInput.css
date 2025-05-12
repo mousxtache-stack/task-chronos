@@ -1,0 +1,31 @@
+/* SmoothCaretInput.css */
+.smooth-caret-container {
+    position: relative;
+    width: 100%;
+  }
+  
+  .smooth-caret-input {
+    caret-color: transparent; /* Masquer le curseur natif */
+  }
+  
+  .smooth-caret {
+    position: absolute;
+    top: 25%; /* Ajuster selon la hauteur du champ */
+    height: 50%;
+    width: 2px;
+    background: linear-gradient(to bottom, #a855f7, #6366f1); /* Dégradé violet-indigo */
+    border-radius: 1px;
+    z-index: 10;
+    transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: caretPulse 1.2s infinite;
+    box-shadow: 0 0 5px rgba(99, 102, 241, 0.5);
+  }
+  
+  @keyframes caretPulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.6;
+    }
+  }

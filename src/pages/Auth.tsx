@@ -1,19 +1,20 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Mail, ArrowRight, LogIn, UserPlus, CheckCircle } from "lucide-react";
+import { Mail, ArrowRight, LogIn, UserPlus, CheckCircle, User } from "lucide-react";
 import BlurText from "@/BlurText/BlurText";
 import { ThemeStyle, useTheme } from "@/lib/context/ThemeContext";
 import { useAlert } from "@/lib/context/AlertContext";
+import { SmoothCaretInput } from "@/components/SmoothCaretInput"; // Importation du composant avec animation
 
 export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<'welcome' | 'login' | 'signup' | 'theme-choice'>('welcome');
-  const [step, setStep] = useState<'email' | 'password' | 'complete'>('email');
+  const [step, setStep] = useState<'email' | 'password' | 'full-name' | 'complete'>('email');
   const [preferredTheme, setPreferredTheme] = useState<ThemeStyle>('default');
   const navigate = useNavigate();
   const { setThemeStyle } = useTheme();
@@ -33,6 +34,7 @@ export default function Auth() {
   const resetForm = () => {
     setEmail("");
     setPassword("");
+    setFullName("");
     setStep('email');
   };
 
@@ -58,30 +60,68 @@ export default function Auth() {
       return;
     }
 
-    setLoading(true);
-
-    try {
-      if (mode === 'login') {
+    if (mode === 'login') {
+      setLoading(true);
+      try {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         
         showAlert("Connexion réussie", "Vous êtes maintenant connecté", "success");
         navigate("/");
-      } else {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-
-        showAlert("Inscription réussie", "Compte créé avec succès", "success");
-        setStep('complete');
-        setMode('theme-choice');
+      } catch (error: any) {
+        showAlert("Erreur", error.message, "error");
+      } finally {
+        setLoading(false);
       }
-    } catch (error: any) {
-      showAlert("Erreur", error.message, "error");
-    } finally {
-      setLoading(false);
+    } else {
+      // Si on est en mode inscription, on passe à l'étape du nom complet
+      setStep('full-name');
     }
   };
 
+  const handleFullNameSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await signUpUser();
+  };
+
+  const skipFullName = async () => {
+    await signUpUser();
+  };
+
+// Dans Auth.tsx
+
+const signUpUser = async () => {
+  setLoading(true);
+  try {
+    // Préparez les données optionnelles pour le profil
+    const profileData: { full_name?: string } = {};
+    if (fullName.trim()) {
+      profileData.full_name = fullName.trim();
+    }
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: profileData // Passez full_name ici
+      }
+    });
+
+    if (error) throw error;
+
+    // Le trigger s'occupera de l'insertion dans 'profiles' avec le full_name
+    // Plus besoin de l'upsert manuel ici si le trigger est bien configuré.
+
+    showAlert("Inscription réussie", "Compte créé avec succès. Veuillez vérifier vos emails pour confirmer votre compte si nécessaire.", "success"); // Message mis à jour pour email confirmation
+    setStep('complete');
+    setMode('theme-choice');
+
+  } catch (error: any) {
+    showAlert("Erreur", error.message, "error");
+  } finally {
+    setLoading(false);
+  }
+};
   const handleThemeChoice = () => {
     // Appliquer le thème choisi
     setThemeStyle(preferredTheme);
@@ -238,7 +278,7 @@ export default function Auth() {
                 direction="bottom"
                 className="text-sm font-medium text-white"
               />
-              <Input
+              <SmoothCaretInput
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -280,7 +320,7 @@ export default function Auth() {
                 direction="bottom"
                 className="text-sm font-medium text-white"
               />
-              <Input
+              <SmoothCaretInput
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -296,7 +336,7 @@ export default function Auth() {
                 type="button"
                 variant="outline"
                 onClick={() => setStep('email')}
-                className="flex-1 h-12 border-gray-800 text-white hover:bg-gray-800 transition-all duration-300"
+                className="flex-1 h-12 border-gray-800 text-black hover:bg-gray-800 transition-all duration-300"
               >
                 Retour
               </Button>
@@ -323,12 +363,83 @@ export default function Auth() {
                       </>
                     ) : (
                       <>
-                        <UserPlus className="mr-2 h-5 w-5" />
-                        S'inscrire
+                        Continuer
+                        <ArrowRight className="ml-2 h-4 w-4" />
                       </>
                     )}
                   </span>
                 )}
+              </Button>
+            </div>
+          </form>
+        )}
+
+        {step === 'full-name' && mode === 'signup' && (
+          <form onSubmit={handleFullNameSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <BlurText
+                text="Entrez votre nom complet"
+                delay={30}
+                animateBy="words"
+                direction="bottom"
+                className="text-sm font-medium text-white"
+              />
+              <div className="relative">
+                <User className="absolute left-3 top-3 h-5 w-5 text-gray-500" />
+                <SmoothCaretInput
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Prénom et nom"
+                  className="h-12 bg-gray-900 border-gray-800 focus:border-indigo-500 text-white pl-10"
+                  autoFocus
+                />
+              </div>
+              <p className="text-xs text-gray-500">
+                Cette information sera utilisée pour personnaliser votre expérience
+              </p>
+            </div>
+            
+            <div className="flex flex-col gap-4">
+              <Button
+                type="submit"
+                className="w-full h-12 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/20 transition-all duration-300"
+                disabled={loading}
+              >
+                {loading ? (
+                  <span className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Traitement...
+                  </span>
+                ) : (
+                  <span className="flex items-center">
+                    <UserPlus className="mr-2 h-5 w-5" />
+                    S'inscrire
+                  </span>
+                )}
+              </Button>
+              
+              <Button
+                type="button"
+                variant="link"
+                onClick={skipFullName}
+                className="text-gray-400 hover:text-white text-sm"
+                disabled={loading}
+              >
+                Éviter cette étape
+              </Button>
+              
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setStep('password')}
+                className="h-10 border-gray-800 text-black hover:bg-gray-800 transition-all duration-300 text-sm"
+                disabled={loading}
+              >
+                Retour
               </Button>
             </div>
           </form>

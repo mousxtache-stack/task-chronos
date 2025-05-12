@@ -12,6 +12,8 @@ import { Profile } from "./pages/Profile"; // Importation du composant Profile
 import { LayoutProvider } from "./lib/context/LayoutContext";
 import { ThemeProvider } from "./lib/context/ThemeContext";
 import { AlertProvider } from "./lib/context/AlertContext";
+import EmailConfirmation from "@/pages/EmailConfirmation"; // ou le chemin relatif selon ton projet
+
 
 const queryClient = new QueryClient();
 
@@ -80,6 +82,7 @@ const App = () => {
                     }
                   />
                   <Route path="*" element={<NotFound />} />
+                  <Route path="/email-confirmation" element={<EmailConfirmation />} />
                 </Routes>
               </BrowserRouter>
             </AlertProvider>

@@ -1,8 +1,9 @@
 import { Task } from "@/lib/types";
-import { Check, Trash2, BookOpen, PencilIcon } from "lucide-react";
+import { Check, Trash2, BookOpen, PencilIcon, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLayout } from "@/lib/context/LayoutContext";
 import { EditTaskDialog } from "./EditTaskDialog";
+import { useState } from "react";
 
 interface TaskCardProps {
   task: Task;
@@ -14,6 +15,11 @@ interface TaskCardProps {
 export function TaskCard({ task, onComplete, onDelete, onEdit }: TaskCardProps) {
   const { layoutMode } = useLayout();
   const isGridMode = layoutMode === "grid";
+  const [showControls, setShowControls] = useState(false);
+
+  const toggleControls = () => {
+    setShowControls(!showControls);
+  };
 
   return (
     <div className={cn(
@@ -57,25 +63,10 @@ export function TaskCard({ task, onComplete, onDelete, onEdit }: TaskCardProps) 
           )}
         </div>
         <div className={cn(
-          isGridMode ? "flex items-center gap-2" : "flex items-center gap-2"
+          isGridMode ? "flex items-center gap-2" : "flex items-center gap-2",
+          "justify-end"
         )}>
-          <EditTaskDialog 
-            task={task}
-            onEdit={onEdit}
-            trigger={
-              <button
-                className={cn(
-                  "p-1 rounded-full hover:bg-secondary transition-colors",
-                  isGridMode && "p-2"
-                )}
-              >
-                <PencilIcon
-                  size={isGridMode ? 22 : 16}
-                  className="text-amber-500"
-                />
-              </button>
-            }
-          />
+          {/* Le bouton compléter est toujours affiché */}
           <button
             onClick={() => onComplete(task.id)}
             className={cn(
@@ -90,15 +81,62 @@ export function TaskCard({ task, onComplete, onDelete, onEdit }: TaskCardProps) 
               )}
             />
           </button>
+          
+          {/* Bouton œil pour contrôler la visibilité - déplacé après le bouton "fait" */}
           <button
-            onClick={() => onDelete(task.id)}
+            onClick={toggleControls}
             className={cn(
-              "p-1 rounded-full hover:bg-destructive/10 transition-colors",
+              "p-1 rounded-full hover:bg-secondary transition-colors",
               isGridMode && "p-2"
             )}
           >
-            <Trash2 size={isGridMode ? 22 : 16} className="text-destructive" />
+            {showControls ? (
+              <Eye
+                size={isGridMode ? 22 : 16}
+                className="text-blue-500"
+              />
+            ) : (
+              <EyeOff
+                size={isGridMode ? 22 : 16}
+                className="text-gray-400"
+              />
+            )}
           </button>
+          
+          {/* Afficher conditionnellement les boutons d'édition et de suppression avec effet blur et translation */}
+          <div className={cn(
+            "flex transition-all duration-300 transform",
+            showControls 
+              ? "opacity-100 blur-none translate-x-0" 
+              : "opacity-0 w-0 overflow-hidden blur-sm -translate-x-4"
+          )}>
+            <EditTaskDialog 
+              task={task}
+              onEdit={onEdit}
+              trigger={
+                <button
+                  className={cn(
+                    "p-1 rounded-full hover:bg-secondary transition-colors",
+                    isGridMode && "p-2"
+                  )}
+                >
+                  <PencilIcon
+                    size={isGridMode ? 22 : 16}
+                    className="text-amber-500"
+                  />
+                </button>
+              }
+            />
+            <button
+              onClick={() => onDelete(task.id)}
+              className={cn(
+                "p-1 rounded-full hover:bg-destructive/10 transition-colors",
+                isGridMode && "p-2"
+              )}
+            >
+              <Trash2 size={isGridMode ? 22 : 16} className="text-destructive" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
