@@ -13,6 +13,9 @@ import { LayoutProvider } from "./lib/context/LayoutContext";
 import { ThemeProvider } from "./lib/context/ThemeContext";
 import { AlertProvider } from "./lib/context/AlertContext";
 import EmailConfirmation from "@/pages/EmailConfirmation"; // ou le chemin relatif selon ton projet
+import PrivacyPolicy from "@/pages/PrivacyPolicy";
+import PremiumPage from "@/pages/PremiumPage";
+import PaymentStatusPage from './pages/PaymentStatusPage'; 
 
 
 const queryClient = new QueryClient();
@@ -83,6 +86,9 @@ const App = () => {
                   />
                   <Route path="*" element={<NotFound />} />
                   <Route path="/email-confirmation" element={<EmailConfirmation />} />
+                  <Route path="/PrivacyPolicy" element={<PrivacyPolicy />} />
+                  <Route path="/PremiumPage" element={<PremiumPage />} />
+                  <Route path="/payment-status" element={<PaymentStatusPage />} />
                 </Routes>
               </BrowserRouter>
             </AlertProvider>

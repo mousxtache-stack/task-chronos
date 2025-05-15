@@ -1,31 +1,147 @@
-/* SmoothCaretInput.css */
-.smooth-caret-container {
-    position: relative;
-    width: 100%;
+/* src/components/SmoothCaretInput.css */
+
+.smooth-input-wrapper {
+  position: relative; /* Pour positionner l'input natif et le texte visuel */
+  display: flex; /* Pour aligner le texte visuel avec le padding de l'input */
+  align-items: center;
+  cursor: text; /* Indique que c'est un champ de texte cliquable */
+  overflow: hidden; /* Empêche le texte de déborder si l'animation le fait temporairement grandir */
+
+  /* Les styles comme h-12, bg-gray-900, border-gray-800, text-white, pl-10
+     sont appliqués ici par les classes Tailwind via la prop `className`
+     Exemple: .smooth-input-wrapper.pl-10 { padding-left: 2.5rem; }
+  */
+}
+
+.smooth-input-native {
+  /* Pour rendre l'input natif fonctionnel mais invisible/minimal */
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0; /* Rend l'input transparent */
+  /* Ou alternativement, pour le débogage, on peut le laisser visible et le superposer :
+  background: transparent;
+  border: none;
+  color: transparent;
+  caret-color: currentColor; Le caret natif serait visible
+  padding: inherit; Si les paddings du wrapper sont utilisés
+  font: inherit;
+  outline: none;
+  z-index: 1;
+  */
+  cursor: text; /* Maintenir le curseur texte */
+  /* Assurez-vous que le padding de l'input natif correspond au padding du wrapper
+     si vous n'utilisez pas `opacity: 0` et que vous le superposez.
+     Tailwind appliquera pl-10 etc. au wrapper. Si l'input natif a son propre padding,
+     le caret natif pourrait être mal aligné par rapport au texte visuel.
+     Avec opacity: 0, ce n'est pas un souci majeur pour le visuel, mais le caret
+     natif (même invisible) utilisera le padding de l'input natif pour se positionner.
+     L'idéal est que l'input natif occupe l'espace de contenu défini par le padding du wrapper.
+  */
+   /* On doit s'assurer que l'input natif a le même padding que son parent
+      pour que le caret se positionne correctement par rapport au texte simulé.
+      Si `pl-10` est sur le wrapper, l'input natif a besoin de ce `pl-10` aussi (ou équivalent).
+      Mais si on cache l'input natif avec opacity 0, on peut juste le faire remplir le wrapper.
+   */
+}
+
+.smooth-input-visual-text {
+  /* Ce conteneur affichera les spans animés.
+     Il doit hériter des styles de texte (font, color) du wrapper.
+     Il ne doit pas interférer avec le clic pour focus l'input natif.
+  */
+  display: flex; /* Permet aux spans de s'aligner horizontalement */
+  align-items: center; /* Centrage vertical des lettres si besoin */
+  white-space: nowrap; /* Empêche le retour à la ligne des spans */
+  pointer-events: none; /* Permet au clic de passer au wrapper (et donc à l'input) */
+  width: 100%;
+  height: 100%;
+  color: inherit; /* Hérite la couleur du texte du wrapper */
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  /* Le padding est géré par le wrapper.
+     Si on mettait pl-10 ici, il s'ajouterait au pl-10 du wrapper.
+  */
+}
+
+.smooth-char-appear {
+  display: inline-block; /* Nécessaire pour transform */
+  opacity: 0;
+  filter: blur(3px); /* Flou initial léger */
+  animation: char-fade-in 0.3s forwards;
+  /* 'animation-delay' est appliqué en ligne dans le JSX */
+}
+
+@keyframes char-fade-in {
+  to {
+    opacity: 1;
+    filter: blur(0px);
+    transform: translateY(0);
   }
-  
-  .smooth-caret-input {
-    caret-color: transparent; /* Masquer le curseur natif */
-  }
-  
-  .smooth-caret {
-    position: absolute;
-    top: 25%; /* Ajuster selon la hauteur du champ */
-    height: 50%;
-    width: 2px;
-    background: linear-gradient(to bottom, #a855f7, #6366f1); /* Dégradé violet-indigo */
-    border-radius: 1px;
-    z-index: 10;
-    transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-    animation: caretPulse 1.2s infinite;
-    box-shadow: 0 0 5px rgba(99, 102, 241, 0.5);
-  }
-  
-  @keyframes caretPulse {
-    0%, 100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.6;
-    }
-  }
+}
+
+/* Styles pour le placeholder simulé */
+.smooth-input-placeholder {
+  position: absolute; /* Se positionne par rapport au wrapper */
+  /* Doit avoir le même padding que le texte pour s'aligner correctement */
+  /* Les classes de padding (comme pl-10) sont sur le wrapper, donc le placeholder
+     s'alignera correctement si on ne lui donne pas de padding ici.
+     S'il avait besoin d'un padding spécifique, il faudrait le gérer en JS
+     ou s'assurer qu'il correspond à celui appliqué par Tailwind.
+  */
+  top: 50%;
+  left: 0; /* S'aligne à gauche du wrapper, le padding du wrapper fera le reste */
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #6b7280; /* Couleur de placeholder typique de Tailwind (gray-500) */
+  /* Assurez-vous que cette couleur correspond à votre thème */
+  padding-left: inherit; /* Hérite le padding-left du wrapper (pl-10 par ex.) */
+  /* Si des icônes sont à gauche (comme Mail), il faudrait ajuster le padding-left ici aussi,
+     ou le passer dynamiquement. Pour l'instant, on assume que pl-10 est le principal.
+  */
+}
+
+/* Ajustement du placeholder si pl-10 est utilisé (ou tout autre pl-*) */
+/* Ce n'est pas idéal car on hardcode la valeur. Il vaudrait mieux
+   que le placeholder soit DANS le flux du .smooth-input-visual-text
+   ou que son padding soit calculé.
+   Pour l'instant, on va se baser sur le fait que le wrapper a le pl-10.
+   Et on laisse le placeholder s'aligner avec le bord gauche du wrapper.
+   Les classes de padding du wrapper vont ensuite le décaler.
+*/
+.smooth-input-wrapper.pl-10 .smooth-input-placeholder {
+    /* Le pl-10 sur le wrapper s'applique, donc pas besoin de le répliquer ici
+       sauf si le placeholder est positionné de manière absolue par rapport au bord
+       *avant* padding. Ici, il est dans le flux du wrapper.
+    */
+}
+/* Si vous avez une icône comme Mail, et que pl-10 est sur le wrapper,
+   le placeholder devrait se positionner après cette icône.
+   Le plus simple est de rendre le placeholder DANS .smooth-input-visual-text.
+*/
+
+
+/* Ajustement pour le placeholder lorsqu'il y a une icône à gauche (comme pl-10 pour Mail)
+   Le `className` sur le wrapper aura `pl-10`.
+   Le `smooth-input-visual-text` est un enfant direct et est affecté par ce padding.
+   Le placeholder simulé, s'il est à l'intérieur de `visual-text`, bénéficiera aussi du padding.
+*/
+.smooth-input-wrapper .smooth-input-visual-text .smooth-input-placeholder {
+  /* Le pl-10 sur le wrapper affecte déjà le conteneur visual-text */
+  /* On peut le laisser vide, le padding du parent s'applique. */
+}
+
+/*
+  Si vous aviez l'icône Mail en position absolue *dans* le wrapper,
+  et que le pl-10 est là pour faire de la place à cette icône,
+  alors le .smooth-input-visual-text (et donc son placeholder)
+  doit aussi avoir ce padding pour s'aligner.
+
+  Le plus simple est d'appliquer les classes de padding directement au wrapper
+  et de laisser .smooth-input-visual-text et l'input natif remplir cet espace.
+*/

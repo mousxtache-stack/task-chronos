@@ -193,6 +193,78 @@
   --input: 0 0% 85%;
   --ring: 0 0% 0%;  /* Noir */
 }
+
+
+
+@layer base {
+  :root, .theme-default {
+    --background: 0 0% 100%; /* ex: Light mode background */
+    --foreground: 222.2 84% 4.9%; /* ex: Light mode text */
+    /* ... autres variables pour le thème par défaut ... */
+    --primary: 262.1 83.3% 57.8%; /* Violet */
+    --primary-foreground: 210 20% 98%;
+    --secondary: 220 14.3% 95.9%;
+    --secondary-foreground: 220.9 39.3% 11%;
+    --muted: 220 14.3% 95.9%;
+    --muted-foreground: 220 8.9% 46.1%;
+    --accent: 210 20% 98%; /* Un gris très clair ou blanc cassé pour les accents */
+    --accent-foreground: 262.1 83.3% 57.8%; /* Texte sur l'accent, peut être la couleur primaire */
+    /* ... et ainsi de suite pour toutes les variables de couleur de shadcn/ui */
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 262.1 83.3% 57.8%; /* Focus ring, souvent la couleur primaire */
+    --radius: 0.5rem;
+  }
+
+
+  /* --- NOUVEAU: Thème Ocean --- */
+  .theme-ocean {
+    --background: 200 50% 95%; /* Bleu très clair / cyan pour le fond */
+    --foreground: 210 30% 20%; /* Texte bleu foncé */
+    --primary: 190 70% 45%;    /* Un bleu-vert moyen pour la couleur primaire */
+    --primary-foreground: 200 100% 98%; /* Texte blanc sur la couleur primaire */
+    --secondary: 195 40% 88%;  /* Un bleu-gris clair pour le secondaire */
+    --secondary-foreground: 210 30% 20%;
+    --muted: 195 40% 88%;
+    --muted-foreground: 205 30% 40%;
+    --accent: 180 50% 75%;     /* Un vert d'eau pour l'accent */
+    --accent-foreground: 210 30% 20%;
+    --card: 200 50% 98%;       /* Carte un peu plus blanche que le fond */
+    --card-foreground: 210 30% 20%;
+    --popover: 200 50% 98%;
+    --popover-foreground: 210 30% 20%;
+    --border: 190 50% 80%;     /* Bordure bleu-vert clair */
+    --input: 190 50% 80%;
+    --ring: 190 70% 45%;       /* Anneau de focus */
+    /* --radius: 0.5rem; (généralement partagé) */
+  }
+
+  /* --- NOUVEAU: Thème Sunset --- */
+  .theme-sunset {
+    --background: 30 80% 94%;  /* Fond pêche clair */
+    --foreground: 20 60% 25%;  /* Texte marron foncé */
+    --primary: 15 90% 55%;     /* Orange vif pour la couleur primaire */
+    --primary-foreground: 30 100% 98%; /* Texte blanc sur la couleur primaire */
+    --secondary: 35 60% 88%;   /* Un orange pâle pour le secondaire */
+    --secondary-foreground: 20 60% 25%;
+    --muted: 35 60% 88%;
+    --muted-foreground: 25 50% 45%;
+    --accent: 50 90% 65%;      /* Jaune doré pour l'accent */
+    --accent-foreground: 20 60% 25%;
+    --card: 30 80% 97%;        /* Carte un peu plus blanche que le fond */
+    --card-foreground: 20 60% 25%;
+    --popover: 30 80% 97%;
+    --popover-foreground: 20 60% 25%;
+    --border: 25 70% 80%;      /* Bordure orange clair */
+    --input: 25 70% 80%;
+    --ring: 15 90% 55%;        /* Anneau de focus */
+    /* --radius: 0.5rem; */
+  }
+}
 /* Styles pour l'animation de la barre */
 .strikethrough-target {
   position: relative; /* Nécessaire pour positionner le pseudo-élément */
@@ -231,3 +303,19 @@
 /* .task-card-completed { */
   /* opacity: 0.6; */ /* Géré par Framer Motion maintenant */
 /* } */
+
+
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.5s ease-out forwards;
+}
