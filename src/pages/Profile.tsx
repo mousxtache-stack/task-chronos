@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+// import { Textarea } from "@/components/ui/textarea"; // Décommentez si vous ajoutez le champ bio
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate, Link } from "react-router-dom";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -15,8 +15,8 @@ import { Separator } from "@/components/ui/separator";
 import { useTheme, ThemeStyle } from "@/lib/context/ThemeContext";
 import { useAlert } from "@/lib/context/AlertContext";
 import { useLayout, LayoutMode } from "@/lib/context/LayoutContext";
-// --- MODIFICATION: Ajout de Eye et EyeOff ---
-import { User, Mail, Phone, Save, ArrowLeft, Palette, AtSign, BookText, LayoutGrid, Bell, BellOff, LogOut, Trash2, Loader2, AlertTriangle, Star, Lock, Eye, EyeOff } from "lucide-react"; 
+// --- CORRECTION: Assurez-vous que 'Info' est bien ici ---
+import { User, Mail, Phone, Save, ArrowLeft, Palette, AtSign, BookText, LayoutGrid, Bell, BellOff, LogOut, Trash2, Loader2, AlertTriangle, Star, Lock, Eye, EyeOff, Info } from "lucide-react"; 
 
 interface ProfileData {
   full_name: string;
@@ -49,11 +49,9 @@ export function Profile() {
   const [actionLoading, setActionLoading] = useState<'logout' | 'delete' | null>(null);
   const [isUserPremium, setIsUserPremium] = useState(false);
 
-  // --- NOUVEL ÉTAT pour la visibilité de la zone de danger ---
   const [showDangerZone, setShowDangerZone] = useState(false);
 
   useEffect(() => {
-    // ... (fetchUserData - inchangé)
     const fetchUserData = async () => {
         setLoading(true);
         try {
@@ -80,6 +78,7 @@ export function Profile() {
                 bio: profileData?.bio || "",
                 default_layout: profileData?.default_layout || layoutMode, 
                 email_notifications_enabled: profileData?.email_notifications_enabled ?? true,
+                is_premium: profileData?.is_premium || false, // S'assurer que is_premium est bien mis à jour
               });
               setIsUserPremium(profileData?.is_premium || false);
 
@@ -96,7 +95,6 @@ export function Profile() {
     fetchUserData();
   }, [showAlert, navigate, layoutMode]);
 
-  // ... (handleChange, handleSwitchChange, handleSelectChange, handleSubmit, handleThemeChange - inchangés)
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setProfile((prev) => ({ ...prev, [name]: value }));
@@ -151,7 +149,7 @@ export function Profile() {
         "info",
         { 
             label: "Découvrir Premium",
-            onClick: () => navigate('/premiumpage')
+            onClick: () => navigate('/premium')
         }
       );
       return; 
@@ -216,7 +214,7 @@ export function Profile() {
   };
 
 
-  if (loading && !user) {
+  if (loading && !user) { // Modifié pour afficher le loader que si l'utilisateur n'est pas encore chargé
     return (
       <div className="flex justify-center items-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -240,7 +238,7 @@ export function Profile() {
           </CardDescription>
         </CardHeader>
 
-        <>
+        <> {/* Ce fragment est ok ici */}
           <form onSubmit={handleSubmit}>
             <CardContent className="pt-6 space-y-8">
               <div className="space-y-3 p-4 border rounded-lg bg-background">
@@ -254,7 +252,7 @@ export function Profile() {
                 {!isUserPremium && (
                   <p className="text-sm text-muted-foreground">
                     Passez à la version Premium pour des fonctionnalités illimitées.{" "}
-                    <Link to="/premiumpage" className="text-primary hover:underline font-medium">
+                    <Link to="/premium" className="text-primary hover:underline font-medium">
                       Découvrir Premium
                     </Link>
                   </p>
@@ -263,7 +261,6 @@ export function Profile() {
               <Separator /> 
               <div className="space-y-6">
                   <h3 className="text-lg font-medium border-b pb-2 mb-4">Informations Personnelles</h3>
-                  {/* ... (Champs Informations Personnelles - inchangés) ... */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                           <Label htmlFor="full_name">Nom complet</Label>
@@ -309,7 +306,7 @@ export function Profile() {
                          Choix de thèmes personnalisés <br/>réservé aux membres <span className="text-primary font-semibold">Premium</span>.
                        </p>
                        <Button variant="link" size="sm" className="mt-1 text-primary" asChild>
-                            <Link to="/premiumpage">Devenir Premium</Link>
+                            <Link to="/premium">Devenir Premium</Link>
                        </Button>
                     </div>
                   )}
@@ -381,23 +378,42 @@ export function Profile() {
                         {profile.email_notifications_enabled ? "Activées" : "Désactivées"}
                     </Label>
                     </div>
-                    <p className="text-xs text-muted-foreground">Recevoir des résumés ou alertes par email (Fonctionnalité non implémentée).</p>
+                    <p className="text-xs text-muted-foreground">Recevoir des résumés ou alertes par email (Fonctionnalité à venir).</p>
                   </div>
               </div>
+
+              <Separator />
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium border-b pb-2 mb-4">Plus d'Informations</h3>
+                <Link
+                  to="/InformationHubPage"
+                  className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors border"
+                >
+                  <div className="flex items-center gap-3">
+                    <Info className="h-5 w-5 text-primary" /> {/* Utilisation de l'icône Info */}
+                    <span className="text-sm font-medium">Centre d'Information & Support</span>
+                  </div>
+                  <ArrowLeft className="h-4 w-4 text-muted-foreground transform rotate-180" />
+                </Link>
+                <p className="text-xs text-muted-foreground px-1">
+                  Consultez notre FAQ, nos conditions d'utilisation, politique de confidentialité et mentions légales.
+                </p>
+              </div>
+
             </CardContent>
             <CardFooter className="border-t px-6 py-4 bg-muted/30">
+              {/* --- CORRECTION: Contenu du bouton dans un span --- */}
               <Button type="submit" disabled={loading || !!actionLoading} className="w-full sm:w-auto">
                 {loading && !actionLoading ? (
-                  <><Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" /> Sauvegarde...</>
+                  <span className="flex items-center"><Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" /> Sauvegarde...</span>
                 ) : (
-                  <><Save className="mr-2 h-4 w-4" /> Sauvegarder les modifications</>
+                  <span className="flex items-center"><Save className="mr-2 h-4 w-4" /> Sauvegarder les modifications</span>
                 )}
               </Button>
             </CardFooter>
           </form>
           <Separator />
           <CardContent className="pt-6 space-y-6">
-            {/* --- MODIFICATION: Section Zone de Danger --- */}
             <div className="flex justify-between items-center border-b pb-2 mb-4">
                 <h3 className="text-lg font-medium flex items-center gap-2 text-destructive">
                     <AlertTriangle className="h-5 w-5"/> Zone de Danger
@@ -408,14 +424,14 @@ export function Profile() {
                     onClick={() => setShowDangerZone(!showDangerZone)}
                     aria-label={showDangerZone ? "Cacher la zone de danger" : "Afficher la zone de danger"}
                     className="text-destructive hover:bg-destructive/10"
-                    disabled={!!actionLoading} // Désactiver si une autre action est en cours
+                    disabled={!!actionLoading}
                 >
                     {showDangerZone ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </Button>
             </div>
 
             {showDangerZone && (
-              <>
+              <> {/* Ce fragment est ok ici */}
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-4 border border-destructive/30 rounded-lg bg-destructive/5">
                   <div className="flex-1">
                       <p className="font-medium text-destructive">Supprimer ce compte</p>
@@ -423,6 +439,7 @@ export function Profile() {
                          Une fois votre compte supprimé, toutes ses ressources et données seront définitivement effacées. Cette action est irréversible.
                       </p>
                   </div>
+                  {/* --- CORRECTION: Contenu du bouton dans un span --- */}
                   <Button
                      variant="destructive"
                      onClick={handleDeleteAccount}
@@ -430,15 +447,16 @@ export function Profile() {
                      className="w-full sm:w-auto flex-shrink-0"
                   >
                      {actionLoading === 'delete' ? (
-                        <><Loader2 className="animate-spin mr-2 h-4 w-4" /> Suppression...</>
+                        <span className="flex items-center"><Loader2 className="animate-spin mr-2 h-4 w-4" /> Suppression...</span>
                      ) : (
-                        <><Trash2 className="mr-2 h-4 w-4" /> Supprimer mon compte</>
+                        <span className="flex items-center"><Trash2 className="mr-2 h-4 w-4" /> Supprimer mon compte</span>
                      )}
                   </Button>
                 </div>
 
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-4">
                     <p className="text-sm text-muted-foreground flex-1">Mettre fin à votre session actuelle sur cet appareil.</p>
+                  {/* --- CORRECTION: Contenu du bouton dans un span --- */}
                   <Button
                     variant="outline"
                     onClick={handleLogout}
@@ -446,15 +464,14 @@ export function Profile() {
                     className="w-full sm:w-auto flex-shrink-0"
                   >
                     {actionLoading === 'logout' ? (
-                      <><Loader2 className="animate-spin mr-2 h-4 w-4" /> Déconnexion...</>
-                    ) : (
-                      <><LogOut className="mr-2 h-4 w-4" /> Se Déconnecter</>
-                    )}
+                      <span className="flex items-center"><Loader2 className="animate-spin mr-2 h-4 w-4" /> Déconnexion...</span>
+                     ) : (
+                      <span className="flex items-center"><LogOut className="mr-2 h-4 w-4" /> Se Déconnecter</span>
+                     )}
                   </Button>
                 </div>
               </>
             )}
-            {/* Fin de la section Zone de Danger conditionnelle */}
           </CardContent>
         </>
       </Card>

@@ -75,8 +75,11 @@ export default function PrivacyPolicy() {
   ];
 
   return (
+    
     <div className="min-h-screen flex flex-col items-center justify-start bg-black text-white px-4 py-12 sm:py-16">
+      
       <div className="w-full max-w-3xl">
+        
         {/* Back Button */}
         <div className="mb-8">
           <Button

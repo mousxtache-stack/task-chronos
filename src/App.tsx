@@ -16,6 +16,9 @@ import EmailConfirmation from "@/pages/EmailConfirmation"; // ou le chemin relat
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import PremiumPage from "@/pages/PremiumPage";
 import PaymentStatusPage from './pages/PaymentStatusPage'; 
+import FAQPage from './pages/FAQPage'; 
+import LegalNotice from './pages/LegalNoticePage.tsx';
+import InformationHubPage from './pages/InformationHubPage.tsx';
 
 
 const queryClient = new QueryClient();
@@ -89,6 +92,9 @@ const App = () => {
                   <Route path="/PrivacyPolicy" element={<PrivacyPolicy />} />
                   <Route path="/PremiumPage" element={<PremiumPage />} />
                   <Route path="/payment-status" element={<PaymentStatusPage />} />
+                  <Route path="/faq" element={<FAQPage />} /> {/* <--- Nouvelle route */}
+                  <Route path="/LegalNotice" element={<LegalNotice />} />
+                  <Route path="/InformationHubPage" element={<InformationHubPage />} />
                 </Routes>
               </BrowserRouter>
             </AlertProvider>
