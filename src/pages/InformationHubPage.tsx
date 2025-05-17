@@ -20,13 +20,7 @@ const informationLinks: InfoLink[] = [
     path: "/faq",
     category: 'Aide',
   },
-  {
-    icon: <FileText size={24} className="text-orange-400" />,
-    title: "Conditions Générales d'Utilisation (CGU)",
-    description: "Consultez les règles et conditions d'utilisation de nos services.",
-    path: "/terms-of-service", // Adaptez si le chemin est différent
-    category: 'Légal',
-  },
+
   {
     icon: <ShieldCheck size={24} className="text-green-400" />,
     title: "Politique de Confidentialité",

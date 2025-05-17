@@ -1,3 +1,4 @@
+// tailwind.config.ts
 import type { Config } from "tailwindcss";
 
 export default {
@@ -17,7 +18,7 @@ export default {
 				'2xl': '1400px'
 			}
 		},
-		extend: {
+		extend: { // TOUT CE QUI EST NOUVEAU/PERSONNALISÉ VA DANS extend
 			fontFamily: {
 				inter: ['Inter', 'sans-serif'],
 			},
@@ -71,29 +72,31 @@ export default {
 				md: 'calc(var(--radius) - 2px)',
 				sm: 'calc(var(--radius) - 4px)'
 			},
-			keyframes: {
+			keyframes: { // La section keyframes existe déjà, on AJOUTE 'shine' ici
 				'accordion-down': {
-					from: {
-						height: '0'
-					},
-					to: {
-						height: 'var(--radix-accordion-content-height)'
-					}
+					from: { height: '0' }, // Utilisez la notation JS/TS pour les propriétés CSS
+					to: { height: 'var(--radix-accordion-content-height)' }
 				},
 				'accordion-up': {
-					from: {
-						height: 'var(--radix-accordion-content-height)'
-					},
-					to: {
-						height: '0'
-					}
+					from: { height: 'var(--radix-accordion-content-height)' },
+					to: { height: '0' }
+				},
+				// ---- AJOUT ICI ----
+				'shine': {
+          '0%': { backgroundPosition: '200% center' }, // ou '100% center' si vous préférez l'effet
+          '100%': { backgroundPosition: '-100% center' }, // ou '-200% center'
 				}
+				// ---- FIN DE L'AJOUT ----
 			},
-			animation: {
+			animation: { // La section animation existe déjà, on AJOUTE 'shine' ici
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				// ---- AJOUT ICI ----
+				'shine': 'shine 5s linear infinite', // Vous pouvez ajuster la durée '5s' ici
+				// ---- FIN DE L'AJOUT ----
 			}
 		}
 	},
 	plugins: [require("tailwindcss-animate")],
+
 } satisfies Config;

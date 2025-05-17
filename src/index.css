@@ -319,3 +319,31 @@
 .animate-slide-in-right {
   animation: slide-in-right 0.5s ease-out forwards;
 }
+.rdp-months {
+  /* Assurez-vous que le conteneur permet l'overflow si l'animation sort des limites */
+  /* overflow: hidden; /* Peut être nécessaire selon l'animation */
+}
+
+.rdp-month {
+  transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+}
+
+/* Animation personnalisée pour l'arrivée d'un nouveau mois */
+.rdp-month_from_left { /* Quand on va vers le passé */
+  transform: translateX(100%);
+  opacity: 0;
+}
+.rdp-month_from_right { /* Quand on va vers le futur */
+  transform: translateX(-100%);
+  opacity: 0;
+}
+
+/* Animation personnalisée pour la sortie d'un mois */
+.rdp-month_to_left {
+  transform: translateX(-100%);
+  opacity: 0;
+}
+.rdp-month_to_right {
+  transform: translateX(100%);
+  opacity: 0;
+}

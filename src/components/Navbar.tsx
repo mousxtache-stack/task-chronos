@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { LogOut, User, Settings } from "lucide-react";
+import { LogOut, User, Settings, Contact, Info } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { useState, useEffect } from "react";
@@ -59,9 +59,11 @@ export function Navbar() {
                   <DropdownMenuItem onClick={() => navigate("/profile")}>
                     <User className="mr-2" /> Profil
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="mr-2" /> Déconnexion
+                  <DropdownMenuItem onClick={() => navigate("/informationhubpage")}>
+                    <Info className="mr-2" /> Info
                   </DropdownMenuItem>
+                  
+                  
                 </DropdownMenuContent>
               </DropdownMenu>
             )}

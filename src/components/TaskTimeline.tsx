@@ -17,13 +17,15 @@ interface TaskTimelineProps {
     title: string,
     description: string,
     date: Date,
-    isHomework: boolean,
-    categoryId?: string // Assurez-vous que la signature de onEdit dans Index.tsx correspond
+    //isHomework: boolean,
+    categoryId?: string, // Assurez-vous que la signature de onEdit dans Index.tsx correspond
+    urgency?: number // AJOUTER CECI
   ) => void;
   categories: Category[]; // MODIFIÉ: Ajouter la prop categories
+  isUserPremium: boolean; // <-- DOIT ÊTRE DÉFINI ICI
 }
 
-export function TaskTimeline({ tasks, onComplete, onDelete, onEdit, categories }: TaskTimelineProps) { // MODIFIÉ: Récupérer categories des props
+export function TaskTimeline({ tasks, onComplete, onDelete, onEdit, categories, isUserPremium }: TaskTimelineProps) { // MODIFIÉ: Récupérer categories des props
   const { layoutMode } = useLayout();
 
   const groupedTasks = useMemo(() => {
@@ -65,21 +67,22 @@ export function TaskTimeline({ tasks, onComplete, onDelete, onEdit, categories }
             layoutMode === "grid" && "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
           )}>
             <AnimatePresence>
-              {group.tasks.map((task) => (
-                // Le wrapper div est correct pour AnimatePresence si TaskCard ne peut pas être directement l'enfant de AnimatePresence
-                // ou si vous avez besoin de classes spécifiques sur ce wrapper.
-                // Framer Motion recommande souvent que l'élément avec la prop `layout` soit l'enfant direct.
-                // Si TaskCard a `motion.div` comme racine avec `layout`, c'est bon.
-                <div key={task.id} className={cn("task-item")}>
-                  <TaskCard
-                    task={task}
-                    onComplete={onComplete}
+            // Dans src/components/TaskTimeline.tsx, dans le map de group.tasks
+{group.tasks.map((task) => {
+  console.log(`Task passée à TaskCard (ID: ${task.id}, Urgence: ${task.urgency}) DEPUIS TaskTimeline:`, JSON.stringify(task, null, 2));
+  return (
+    <div key={task.id} className={cn("task-item")}>
+      <TaskCard
+        task={task} // C'est cette prop task qu'on vérifie
+        onComplete={onComplete}
                     onDelete={onDelete}
                     onEdit={onEdit}
                     categories={categories} // MODIFIÉ: Passer la prop categories ici
-                  />
-                </div>
-              ))}
+                    isUserPremium={isUserPremium}
+      />
+    </div>
+  );
+})}
             </AnimatePresence>
             {group.tasks.length === 0 && (
                  <p className="text-muted-foreground text-sm col-span-full">Aucune tâche pour ce jour.</p>

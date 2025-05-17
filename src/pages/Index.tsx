@@ -101,8 +101,8 @@ const Index = () => {
           description: task.description || undefined,
           date: new Date(task.date),
           completed: task.completed || false,
-          isHomework: task.is_homework || false,
           categoryId: task.category_id || undefined,
+          urgency: task.urgency === null || typeof task.urgency === 'undefined' ? undefined : Number(task.urgency),
         }));
         setTasks(formattedTasks);
       }
@@ -192,7 +192,8 @@ const Index = () => {
   }, [showWelcome, profileChecked, isUserPremium]);
 
   // Fonctions de gestion des tâches et catégories (CRUD)
-  const handleAddTask = async (title: string, description: string, date: Date, isHomework: boolean, categoryId?: string) => {
+  const handleAddTask = async (title: string, description: string, date: Date, categoryId?: string, urgency?: number) => {
+    
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -202,21 +203,48 @@ const Index = () => {
         showAlert("Limite atteinte", `Passez à Premium pour plus de ${MAX_TASKS_FREE_TIER} tâches.`, "warning", 3000);
         setTimeout(() => navigate('/premium'), 2500); return;
       }
-      const { data: newTaskData, error } = await supabase.from("tasks").insert([{
-        title, description: description || null, date: date.toISOString().split('T')[0],
-        completed: false, user_id: user.id, is_homework: isHomework, category_id: categoryId || null,
-      }]).select().single();
-      if (error) throw error;
+
+      // Créez l'objet à insérer
+      const taskToInsert = {
+        title,
+        description: description || null,
+        date: date.toISOString().split('T')[0],
+        completed: false,
+        user_id: user.id,
+        category_id: categoryId || null,
+        urgency: urgency, // <-- AJOUTEZ CETTE LIGNE
+      };
+      
+      
+
+      const { data: newTaskData, error } = await supabase.from("tasks")
+        .insert([taskToInsert]) // Utilisez l'objet que vous venez de construire
+        .select() // Assurez-vous de sélectionner 'urgency' ici aussi pour le retour
+        .single();
+
+      if (error) {
+        console.error("Erreur Supabase lors de l'insertion:", error);
+        throw error;
+      }
+      
+      console.log("Index.tsx - handleAddTask: Réponse de Supabase insert (newTaskData):", newTaskData);
+
       if (newTaskData) {
         const newTask: Task = {
-          id: newTaskData.id, title: newTaskData.title, description: newTaskData.description || undefined,
-          date: new Date(newTaskData.date), completed: newTaskData.completed, isHomework: newTaskData.is_homework,
+          id: newTaskData.id,
+          title: newTaskData.title,
+          description: newTaskData.description || undefined,
+          date: new Date(newTaskData.date),
+          completed: newTaskData.completed,
           categoryId: newTaskData.category_id || undefined,
+          urgency: newTaskData.urgency === null || typeof newTaskData.urgency === 'undefined' ? undefined : Number(newTaskData.urgency), // Récupérez aussi l'urgence ici
         };
         setTasks(prev => [...prev, newTask].sort((a, b) => a.date.getTime() - b.date.getTime()));
         showAlert("Tâche ajoutée", "Succès.", "success");
       }
-    } catch (error: any) { showAlert("Erreur", "Impossible d'ajouter: " + error.message, "error"); }
+    } catch (error: any) { 
+      showAlert("Erreur", "Impossible d'ajouter: " + error.message, "error"); 
+    }
   };
 
   const handleAddCategory = async (name: string, logo: string) => {
@@ -344,17 +372,17 @@ const Index = () => {
     } catch (error: any) { showAlert("Erreur", "Suppression impossible: " + error.message, "error"); }
   };
 
-  const handleEditTask = async (id: string, title: string, description: string, date: Date, isHomework: boolean, categoryId?: string) => {
+  const handleEditTask = async (id: string, title: string, description: string, date: Date, categoryId?: string, urgence?: number) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const updateData = { title, description: description || null, date: date.toISOString().split('T')[0], is_homework: isHomework, category_id: categoryId || null };
+      const updateData = { title, description: description || null, date: date.toISOString().split('T')[0], category_id: categoryId || null };
       const { data, error } = await supabase.from("tasks").update(updateData).eq("id", id).eq("user_id", user.id).select().single();
       if (error) throw error;
       if (data) {
         const updatedTask: Task = {
           id: data.id, title: data.title, description: data.description || undefined, date: new Date(data.date),
-          completed: data.completed, isHomework: data.is_homework, categoryId: data.category_id || undefined,
+          completed: data.completed, categoryId: data.category_id || undefined,
         };
         setTasks(tasks.map(task => (task.id === id ? updatedTask : task)).sort((a, b) => a.date.getTime() - b.date.getTime()));
         showAlert("Tâche modifiée", "Succès.", "success");
@@ -365,14 +393,12 @@ const Index = () => {
   // Logique de filtrage des tâches (dépend de `tasks` et `activeFilter`)
   const filteredTasks = tasks.filter(task => {
     if (activeFilter === 'all') return true;
-    if (activeFilter === 'homework') return task.isHomework;
     return task.categoryId === activeFilter; // Filtre par ID de catégorie
   });
 
   // Fonction pour obtenir le label du bouton de filtre (dépend de `activeFilter` et `categories`)
   const getFilterButtonLabel = () => {
     if (activeFilter === 'all') return 'Filtrer les tâches';
-    if (activeFilter === 'homework') return 'Devoirs';
     const category = categories.find(cat => cat.id === activeFilter);
     return category ? category.name : 'Catégorie'; // Fallback si la catégorie n'est pas trouvée
   };
@@ -400,7 +426,7 @@ const Index = () => {
       }>
         <div className="max-w-7xl mx-auto flex flex-col gap-4 items-center justify-center py-8">
           <div className="flex items-center gap-4">
-            <AddTaskDialog onAdd={handleAddTask} categories={categories} />
+            <AddTaskDialog onAdd={handleAddTask} categories={categories} isUserPremium={isUserPremium} />
             <LayoutSettings />
           </div>
           <div className="flex gap-2 mt-4">
@@ -421,11 +447,7 @@ const Index = () => {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Filtrer par catégorie</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => setActiveFilter('homework')}>
-                  <BookOpenIcon size={16} className="mr-2 text-blue-500" />
-                  Devoirs
-                </DropdownMenuItem>
+                
                 {categories.length > 0 && <DropdownMenuSeparator />}
                 {categories.map(category => {
                   const Icon = category.logo && (LucideIcons as any)[category.logo]
@@ -462,8 +484,9 @@ const Index = () => {
           tasks={filteredTasks}
           onComplete={handleCompleteTask} // Changé
           onDelete={handleDeleteTask}     // Changé
-          onEdit={handleEditTask}
-          categories={categories}
+          onEdit={handleEditTask} // handleEditTask doit être mis à jour
+          categories={categories} // Passez la liste complète des catégories
+          isUserPremium={isUserPremium}
         />
          {tasks.length === 0 && profileChecked && ( // Message si aucune tâche, même si des filtres sont actifs mais ne retournent rien
           <div className="text-center py-10">

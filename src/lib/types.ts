@@ -16,7 +16,8 @@ export interface Task {
   description?: string;
   date: Date;
   completed: boolean;
-  isHomework?: boolean;
+ // isHomework?: boolean;
+ urgence?: number;
 }
 
 export interface Category { // Assurez-vous que 'export' est présent
