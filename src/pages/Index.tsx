@@ -1,9 +1,10 @@
 // src/pages/Index.tsx
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from 'react-router-dom';
-import { Task, Category } from "@/lib/types";
+import { Task, Category, Subtask, Profile } from "@/lib/types"; // Assurez-vous que Profile est défini
 import { TaskTimeline } from "@/components/TaskTimeline";
 import { AddTaskDialog } from "@/components/AddTaskDialog";
+import { EditTaskDialog } from "@/components/EditTaskDialog"; // Nécessaire pour la logique d'édition
 import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,8 @@ import BlurText from "@/BlurText/BlurText";
 import { useAlert } from "@/lib/context/AlertContext";
 import { PremiumPopup } from "@/components/PremiumPopup";
 import { FloatingActionButton } from "@/components/FloatingActionButton";
+import { useProfileData } from "@/lib/context/ProfileContext"; // Importé pour les données du profil
+import { Separator } from "@/components/ui/separator"; // Pour la séparation visuelle potentielle
 
 import {
   DropdownMenu,
@@ -22,11 +25,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, Filter as FilterIcon, BookOpen as BookOpenIcon } from "lucide-react"; // Icônes spécifiques
-import * as LucideIcons from 'lucide-react'; // Pour les logos dynamiques des catégories
+import { ChevronDown, Filter as FilterIcon, BookOpen as BookOpenIcon, Loader2, Pin as PinIconLucide } from "lucide-react"; // PinIconLucide pour éviter conflit avec type Pin
+import * as LucideIcons from 'lucide-react';
 
 const MAX_TASKS_FREE_TIER = 10;
-// const MAX_CATEGORIES_FREE_TIER = 3; // Optionnel
 
 const getWelcomeMessage = () => {
   const hour = new Date().getHours();
@@ -41,7 +43,7 @@ const Index = () => {
   // États principaux
   const [tasks, setTasks] = useState<Task[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [activeFilter, setActiveFilter] = useState<string>('all'); // État pour le filtre actif
+  const [activeFilter, setActiveFilter] = useState<string>('all');
 
   // États UI et contexte
   const { showAlert } = useAlert();
@@ -49,50 +51,35 @@ const Index = () => {
   const lastScrollY = useRef(0);
   const [showWelcome, setShowWelcome] = useState(true);
 
-  // États liés à l'utilisateur et Premium
+  // Utilisation du contexte de profil
+  const { profile: userProfile, loadingProfile, fetchProfile: fetchContextProfile } = useProfileData();
   const [showPremiumPopup, setShowPremiumPopup] = useState(false);
-  const [isUserPremium, setIsUserPremium] = useState(false);
-  const [profileChecked, setProfileChecked] = useState(false);
+
+  // État de chargement pour les données de la page (tâches, catégories)
+  const [isLoadingPageData, setIsLoadingPageData] = useState(true);
+  // État pour le dialogue d'ajout de tâche (utilisé par votre AddTaskDialog dans le header)
+  // Si AddTaskDialog gère son propre état d'ouverture, cet état n'est pas nécessaire ici.
+  // Pour l'instant, je le laisse commenté car votre JSX pour AddTaskDialog ne montre pas qu'il est contrôlé par un état ici.
+  // const [isAddTaskDialogOpen, setIsAddTaskDialogOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+
 
   const navigate = useNavigate();
   const { layoutMode } = useLayout();
 
-  // Fonctions de chargement des données
-  const fetchUserProfile = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile, error, status } = await supabase
-          .from('profiles')
-          .select('is_premium')
-          .eq('id', user.id)
-          .single();
-        if (error && status !== 406) {
-            console.error("Erreur de chargement du profil:", error);
-            setIsUserPremium(false); // Fallback en cas d'erreur
-        } else {
-           setIsUserPremium(profile?.is_premium || false);
-        }
-      } else {
-        setIsUserPremium(false);
-      }
-    } catch (e) {
-      console.error("Erreur catchée lors du fetchUserProfile:", e);
-      setIsUserPremium(false);
-    } finally {
-      setProfileChecked(true);
-    }
-  };
+  const isUserPremium = useMemo(() => userProfile?.is_premium || false, [userProfile]);
 
-  const loadTasks = async () => {
+  const loadTasks = async (userId: string) => {
+    // Ne pas changer setIsLoadingPageData ici si ce n'est pas le seul chargement
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
       const { data, error } = await supabase
         .from("tasks")
-        .select("*")
-        .eq('user_id', user.id)
-        .order("date", { ascending: true });
+        .select("*, category:categories(name)")
+        .eq('user_id', userId)
+        .order("is_pinned", { ascending: false, nullsFirst: false })
+        .order("date", { ascending: true })
+        .order("created_at", { ascending: true });
+
       if (error) throw error;
       if (data) {
         const formattedTasks = data.map((task): Task => ({
@@ -102,7 +89,13 @@ const Index = () => {
           date: new Date(task.date),
           completed: task.completed || false,
           categoryId: task.category_id || undefined,
+          category_name: task.category?.name || undefined,
           urgency: task.urgency === null || typeof task.urgency === 'undefined' ? undefined : Number(task.urgency),
+          user_id: task.user_id,
+          created_at: task.created_at,
+          subtasks: task.subtasks || [],
+          is_pinned: task.is_pinned || false,
+          recurrence_rule: task.recurrence_rule || null,
         }));
         setTasks(formattedTasks);
       }
@@ -111,45 +104,48 @@ const Index = () => {
     }
   };
 
-  const loadCategories = async () => {
+  const loadCategories = async (userId: string) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
       const { data, error } = await supabase
         .from('categories')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('name', { ascending: true });
       if (error) throw error;
-      if (data) setCategories(data as Category[]); // Typage explicite
+      if (data) setCategories(data as Category[]);
     } catch (error: any) {
       showAlert("Erreur Catégories", "Impossible de charger les catégories: " + error.message, "error");
     }
   };
 
-  // Effet pour l'authentification et le chargement initial des données
   useEffect(() => {
+    setIsLoadingPageData(true); // Commencer le chargement global
     const checkUserAndLoadData = async () => {
+      if (loadingProfile) return;
+
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      if (!session?.user) {
         navigate('/auth');
+        setIsLoadingPageData(false);
         return;
       }
-      await fetchUserProfile(); // Utiliser await
-      await loadTasks();        // Utiliser await
-      await loadCategories();   // Utiliser await
+      if (session.user.id) {
+        await Promise.all([
+          loadTasks(session.user.id),
+          loadCategories(session.user.id)
+        ]);
+      }
+      setIsLoadingPageData(false); // Fin du chargement global
     };
+
     checkUserAndLoadData();
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => { // Ajouter async ici
-      if (event === 'SIGNED_IN' && session) { // Vérifier session
-        await fetchUserProfile(); // Utiliser await
-        await loadTasks();        // Utiliser await
-        await loadCategories();   // Utiliser await
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        await fetchContextProfile(); // Le useEffect ci-dessus réagira
       } else if (event === 'SIGNED_OUT') {
         setTasks([]);
         setCategories([]);
-        setIsUserPremium(false);
-        setProfileChecked(false);
         navigate('/auth');
       }
     });
@@ -157,9 +153,9 @@ const Index = () => {
       authListener?.subscription.unsubscribe();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate]);
+  }, [navigate, loadingProfile, fetchContextProfile]);
 
-  // Effet pour la visibilité du header au scroll
+
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
@@ -170,240 +166,230 @@ const Index = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Effet pour le message de bienvenue et la popup premium
   useEffect(() => {
     if (showWelcome) {
       const welcomeTimeout = setTimeout(() => setShowWelcome(false), 3000);
       return () => clearTimeout(welcomeTimeout);
     } else {
-      if (profileChecked && !isUserPremium) {
-        const alreadyShownThisSession = sessionStorage.getItem('premiumPopupShown');
-        if (!alreadyShownThisSession) {
-          const popupTimer = setTimeout(() => {
-            setShowPremiumPopup(true);
-            sessionStorage.setItem('premiumPopupShown', 'true');
-          }, 1500);
-          return () => clearTimeout(popupTimer);
+      if (!loadingProfile) {
+        if (!isUserPremium) {
+          const alreadyShownThisSession = sessionStorage.getItem('premiumPopupShown');
+          if (!alreadyShownThisSession) {
+            const popupTimer = setTimeout(() => {
+              setShowPremiumPopup(true);
+              sessionStorage.setItem('premiumPopupShown', 'true');
+            }, 1500);
+            return () => clearTimeout(popupTimer);
+          }
+        } else {
+          setShowPremiumPopup(false);
         }
-      } else if (profileChecked && isUserPremium) {
-        setShowPremiumPopup(false);
       }
     }
-  }, [showWelcome, profileChecked, isUserPremium]);
+  }, [showWelcome, loadingProfile, isUserPremium]);
 
-  // Fonctions de gestion des tâches et catégories (CRUD)
-  const handleAddTask = async (title: string, description: string, date: Date, categoryId?: string, urgency?: number) => {
-    
+
+  const handleAddTask = async (
+    title: string,
+    description: string,
+    date: Date,
+    categoryId?: string,
+    urgency?: number,
+    // NOUVEAUX PARAMS (pour la signature, la logique d'utilisation est dans les dialogues)
+    subtasksData?: Subtask[],
+    recurrenceRuleData?: string
+    // is_pinned n'est généralement pas défini à la création, mais à l'édition ou par une action séparée
+  ) => {
+    if (!userProfile?.id) {
+      showAlert("Erreur", "Connectez-vous.", "error"); return;
+    }
+    if (!isUserPremium && tasks.length >= MAX_TASKS_FREE_TIER) {
+      showAlert("Limite atteinte", `Premium > ${MAX_TASKS_FREE_TIER} tâches.`, "warning", 3000);
+      setTimeout(() => navigate('/premium'), 2500); return;
+    }
+
+    const finalSubtasks = (isUserPremium && userProfile.enable_subtasks) ? subtasksData : null;
+    const finalRecurrenceRule = (isUserPremium && userProfile.enable_smart_recurrence) ? recurrenceRuleData : null;
+
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        showAlert("Erreur", "Vous devez être connecté.", "error"); return;
-      }
-      if (!isUserPremium && tasks.length >= MAX_TASKS_FREE_TIER) {
-        showAlert("Limite atteinte", `Passez à Premium pour plus de ${MAX_TASKS_FREE_TIER} tâches.`, "warning", 3000);
-        setTimeout(() => navigate('/premium'), 2500); return;
-      }
-
-      // Créez l'objet à insérer
       const taskToInsert = {
-        title,
-        description: description || null,
-        date: date.toISOString().split('T')[0],
-        completed: false,
-        user_id: user.id,
-        category_id: categoryId || null,
-        urgency: urgency, // <-- AJOUTEZ CETTE LIGNE
+        title, description: description || null, date: date.toISOString().split('T')[0],
+        completed: false, user_id: userProfile.id, category_id: categoryId || null, urgency: urgency,
+        subtasks: finalSubtasks, is_pinned: false, recurrence_rule: finalRecurrenceRule,
       };
-      
-      
-
-      const { data: newTaskData, error } = await supabase.from("tasks")
-        .insert([taskToInsert]) // Utilisez l'objet que vous venez de construire
-        .select() // Assurez-vous de sélectionner 'urgency' ici aussi pour le retour
-        .single();
-
-      if (error) {
-        console.error("Erreur Supabase lors de l'insertion:", error);
-        throw error;
-      }
-      
-      console.log("Index.tsx - handleAddTask: Réponse de Supabase insert (newTaskData):", newTaskData);
-
+      const { data: newTaskData, error } = await supabase.from("tasks").insert([taskToInsert])
+        .select("*, category:categories(name)").single();
+      if (error) throw error;
       if (newTaskData) {
         const newTask: Task = {
-          id: newTaskData.id,
-          title: newTaskData.title,
-          description: newTaskData.description || undefined,
-          date: new Date(newTaskData.date),
-          completed: newTaskData.completed,
-          categoryId: newTaskData.category_id || undefined,
-          urgency: newTaskData.urgency === null || typeof newTaskData.urgency === 'undefined' ? undefined : Number(newTaskData.urgency), // Récupérez aussi l'urgence ici
+          id: newTaskData.id, title: newTaskData.title, description: newTaskData.description || undefined,
+          date: new Date(newTaskData.date), completed: newTaskData.completed || false,
+          categoryId: newTaskData.category_id || undefined, category_name: newTaskData.category?.name || undefined,
+          urgency: newTaskData.urgency === null || typeof newTaskData.urgency === 'undefined' ? undefined : Number(newTaskData.urgency),
+          user_id: newTaskData.user_id, created_at: newTaskData.created_at,
+          subtasks: newTaskData.subtasks || [], is_pinned: newTaskData.is_pinned || false,
+          recurrence_rule: newTaskData.recurrence_rule || null,
         };
-        setTasks(prev => [...prev, newTask].sort((a, b) => a.date.getTime() - b.date.getTime()));
+        setTasks(prev => [...prev, newTask].sort((a, b) => {
+            if (a.is_pinned && !b.is_pinned) return -1; if (!a.is_pinned && b.is_pinned) return 1;
+            return a.date.getTime() - b.date.getTime();
+        }));
         showAlert("Tâche ajoutée", "Succès.", "success");
+        // Fermer le dialogue si AddTaskDialog est contrôlé par un état ici
+        // setIsAddTaskDialogOpen(false);
       }
-    } catch (error: any) { 
-      showAlert("Erreur", "Impossible d'ajouter: " + error.message, "error"); 
-    }
+    } catch (error: any) { showAlert("Erreur", "Ajout impossible: " + error.message, "error"); }
   };
 
   const handleAddCategory = async (name: string, logo: string) => {
+    if (!userProfile?.id) { showAlert("Erreur", "Connectez-vous.", "error"); return; }
+    if (!isUserPremium) { showAlert("Accès Premium", "Création pour membres Premium.", "warning"); return; }
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { showAlert("Erreur", "Vous devez être connecté.", "error"); return; }
-      if (!isUserPremium) { showAlert("Accès Premium", "La création de catégories est réservée aux membres Premium.", "warning"); return; }
-      
       const { data: newCategoryData, error } = await supabase.from('categories')
-        .insert({ user_id: user.id, name: name.trim(), logo: logo.trim() }).select().single();
-      if (error) {
-        if (error.code === '23505') showAlert("Erreur", "Ce nom de catégorie existe déjà.", "error");
-        else throw error;
-        return;
-      }
+        .insert({ user_id: userProfile.id, name: name.trim(), logo: logo.trim() }).select().single();
+      if (error) { if (error.code === '23505') showAlert("Erreur", "Nom catégorie existe.", "error"); else throw error; return; }
       if (newCategoryData) {
         setCategories(prev => [...prev, newCategoryData as Category].sort((a, b) => a.name.localeCompare(b.name)));
-        showAlert("Catégorie créée", `"${name}" créée.`, "success");
+        showAlert("Catégorie créée", `"${name}" ok.`, "success");
       }
-    } catch (error: any) { showAlert("Erreur Catégorie", "Impossible de créer: " + (error.message || "Erreur inconnue"), "error"); }
+    } catch (error: any) { showAlert("Erreur Catégorie", "Création impossible: " + (error.message || "Erreur"), "error"); }
   };
-
   const handleUpdateCategory = async (id: string, name: string, logo: string) => {
+    if (!userProfile?.id) { showAlert("Erreur", "Connectez-vous.", "error"); return; }
+    if (!isUserPremium) { showAlert("Accès Premium", "Modification pour membres Premium.", "warning"); return; }
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        showAlert("Erreur", "Vous devez être connecté pour modifier une catégorie.", "error");
-        return;
-      }
-      if (!isUserPremium) { showAlert("Accès Premium", "La modification de catégories est réservée aux membres Premium.", "warning"); return; }
-
-      const { data: updatedCategoryData, error } = await supabase
-        .from('categories')
-        .update({ name: name.trim(), logo: logo.trim() })
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .select()
-        .single();
-
-      if (error) {
-        if (error.code === '23505') { 
-          showAlert("Erreur", "Ce nom de catégorie est déjà utilisé.", "error");
-        } else {
-          console.error("Erreur Supabase (update category):", error);
-          throw error;
-        }
-        return;
-      }
-
+      const { data: updatedCategoryData, error } = await supabase.from('categories').update({ name: name.trim(), logo: logo.trim() })
+        .eq('id', id).eq('user_id', userProfile.id).select().single();
+      if (error) { if (error.code === '23505') showAlert("Erreur", "Nom catégorie existe.", "error"); else throw error; return; }
       if (updatedCategoryData) {
-        setCategories(prevCategories =>
-          prevCategories.map(cat =>
-            cat.id === id ? (updatedCategoryData as Category) : cat
-          ).sort((a, b) => a.name.localeCompare(b.name))
-        );
-        showAlert("Catégorie mise à jour", `"${name}" mise à jour avec succès.`, "success");
+        setCategories(prev => prev.map(c => c.id === id ? (updatedCategoryData as Category) : c).sort((a,b)=>a.name.localeCompare(b.name)));
+        showAlert("Catégorie MàJ", `"${name}" ok.`, "success");
       }
-    } catch (error: any) {
-      showAlert("Erreur de mise à jour", "Impossible de mettre à jour la catégorie: " + (error.message || "Erreur inconnue"), "error");
-    }
+    } catch (error: any) { showAlert("Erreur MàJ", "Impossible: " + (error.message || "Erreur"), "error"); }
   };
-
   const handleDeleteCategory = async (id: string) => {
+    if (!userProfile?.id) { showAlert("Erreur", "Connectez-vous.", "error"); return; }
+    if (!isUserPremium) { showAlert("Accès Premium", "Suppression pour membres Premium.", "warning"); return; }
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        showAlert("Erreur", "Vous devez être connecté pour supprimer une catégorie.", "error");
-        return;
-      }
-      if (!isUserPremium) { showAlert("Accès Premium", "La suppression de catégories est réservée aux membres Premium.", "warning"); return; }
-
-      const { error: updateTasksError } = await supabase
-        .from('tasks')
-        .update({ category_id: null })
-        .eq('category_id', id)
-        .eq('user_id', user.id);
-
-      if (updateTasksError) {
-        console.error("Erreur lors de la dissociation des tâches de la catégorie:", updateTasksError);
-        showAlert("Avertissement", "Impossible de dissocier toutes les tâches de cette catégorie, mais la suppression va continuer.", "warning");
-      }
-
-      const { error: deleteCategoryError } = await supabase
-        .from('categories')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
-
-      if (deleteCategoryError) throw deleteCategoryError;
-
-      setCategories(prevCategories => prevCategories.filter(cat => cat.id !== id));
-      setTasks(prevTasks => 
-        prevTasks.map(task => 
-          task.categoryId === id ? { ...task, categoryId: undefined } : task
-        )
-      );
-      showAlert("Catégorie supprimée", "La catégorie a été supprimée.", "success");
-    } catch (error: any) {
-      showAlert("Erreur de suppression", "Impossible de supprimer la catégorie: " + (error.message || "Erreur inconnue"), "error");
-    }
+      await supabase.from('tasks').update({ category_id: null }).eq('category_id', id).eq('user_id', userProfile.id);
+      await supabase.from('categories').delete().eq('id', id).eq('user_id', userProfile.id);
+      setCategories(prev => prev.filter(c => c.id !== id));
+      setTasks(prev => prev.map(t => t.categoryId === id ? { ...t, categoryId: undefined, category_name: undefined } : t));
+      showAlert("Catégorie supprimée", "Ok.", "success");
+    } catch (error: any) { showAlert("Erreur suppression", "Impossible: " + (error.message || "Erreur"), "error"); }
   };
 
-  const handleCompleteTask = async (id: string) => { // Nom de fonction clarifié : handleCompleteTask
+  const handleCompleteTask = async (id: string) => {
+    if (!userProfile?.id) return;
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
       const taskToUpdate = tasks.find((t) => t.id === id);
       if (!taskToUpdate) return;
-      const { data, error } = await supabase.from("tasks")
-        .update({ completed: !taskToUpdate.completed }).eq("id", id).eq("user_id", user.id)
-        .select('id, completed').single();
+      const { data, error } = await supabase.from("tasks").update({ completed: !taskToUpdate.completed, updated_at: new Date().toISOString() })
+        .eq("id", id).eq("user_id", userProfile.id).select('id, completed, updated_at').single();
       if (error) throw error;
-      if (data) setTasks(tasks.map(task => task.id === id ? { ...task, completed: data.completed } : task));
-    } catch (error: any) { showAlert("Erreur", "MàJ tâche impossible: " + error.message, "error"); }
+      if (data) setTasks(tasks.map(t => t.id === id ? { ...t, completed: data.completed, updated_at: data.updated_at } : t));
+    } catch (error: any) { showAlert("Erreur", "MàJ tâche: " + error.message, "error"); }
+  };
+  const handleDeleteTask = async (id: string) => {
+    if (!userProfile?.id) return;
+    try {
+      await supabase.from("tasks").delete().eq("id", id).eq("user_id", userProfile.id);
+      setTasks(tasks.filter(t => t.id !== id));
+      showAlert("Tâche supprimée", "Ok.", "success");
+    } catch (error: any) { showAlert("Erreur", "Suppression: " + error.message, "error"); }
   };
 
-  const handleDeleteTask = async (id: string) => { // Nom de fonction clarifié : handleDeleteTask
+  const handleEditTask = async (
+    id: string, title: string, description: string, date: Date, categoryId?: string, urgency?: number,
+    subtasksData?: Subtask[], isPinnedData?: boolean, recurrenceRuleData?: string // Signature mise à jour
+  ) => {
+    if (!userProfile?.id) return;
+    const finalSubtasks = (isUserPremium && userProfile.enable_subtasks) ? subtasksData : undefined;
+    const finalIsPinned = (isUserPremium && userProfile.enable_pinned_tasks) ? isPinnedData : undefined;
+    const finalRecurrenceRule = (isUserPremium && userProfile.enable_smart_recurrence) ? recurrenceRuleData : undefined;
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { error } = await supabase.from("tasks").delete().eq("id", id).eq("user_id", user.id);
-      if (error) throw error;
-      setTasks(tasks.filter(task => task.id !== id));
-      showAlert("Tâche supprimée", "Succès.", "success");
-    } catch (error: any) { showAlert("Erreur", "Suppression impossible: " + error.message, "error"); }
-  };
+      const updatePayload: any = { title, description: description || null, date: date.toISOString().split('T')[0],
+        category_id: categoryId || null, urgency, updated_at: new Date().toISOString() };
+      if (finalSubtasks !== undefined) updatePayload.subtasks = finalSubtasks;
+      if (finalIsPinned !== undefined) updatePayload.is_pinned = finalIsPinned;
+      if (finalRecurrenceRule !== undefined) updatePayload.recurrence_rule = finalRecurrenceRule;
 
-  const handleEditTask = async (id: string, title: string, description: string, date: Date, categoryId?: string, urgence?: number) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const updateData = { title, description: description || null, date: date.toISOString().split('T')[0], category_id: categoryId || null };
-      const { data, error } = await supabase.from("tasks").update(updateData).eq("id", id).eq("user_id", user.id).select().single();
+      const { data, error } = await supabase.from("tasks").update(updatePayload).eq("id", id).eq("user_id", userProfile.id)
+        .select("*, category:categories(name)").single();
       if (error) throw error;
       if (data) {
         const updatedTask: Task = {
           id: data.id, title: data.title, description: data.description || undefined, date: new Date(data.date),
-          completed: data.completed, categoryId: data.category_id || undefined,
+          completed: data.completed || false, categoryId: data.category_id || undefined, category_name: data.category?.name || undefined,
+          urgency: data.urgency === null || typeof data.urgency === 'undefined' ? undefined : Number(data.urgency),
+          user_id: data.user_id, created_at: data.created_at, updated_at: data.updated_at,
+          subtasks: data.subtasks || [], is_pinned: data.is_pinned || false, recurrence_rule: data.recurrence_rule || null,
         };
-        setTasks(tasks.map(task => (task.id === id ? updatedTask : task)).sort((a, b) => a.date.getTime() - b.date.getTime()));
-        showAlert("Tâche modifiée", "Succès.", "success");
+        setTasks(tasks.map(t => (t.id === id ? updatedTask : t)).sort((a, b) => {
+            if (a.is_pinned && !b.is_pinned) return -1; if (!a.is_pinned && b.is_pinned) return 1;
+            return a.date.getTime() - b.date.getTime();
+        }));
+        showAlert("Tâche modifiée", "Ok.", "success");
+        setEditingTask(null);
       }
-    } catch (error: any) { showAlert("Erreur", "Modification impossible: " + error.message, "error"); }
+    } catch (error: any) { showAlert("Erreur", "Modification: " + error.message, "error"); }
   };
 
-  // Logique de filtrage des tâches (dépend de `tasks` et `activeFilter`)
-  const filteredTasks = tasks.filter(task => {
-    if (activeFilter === 'all') return true;
-    return task.categoryId === activeFilter; // Filtre par ID de catégorie
-  });
+  const handleUpdateSubtask = async (taskId: string, subtaskId: string, completed: boolean) => {
+    if (!userProfile?.id || !isUserPremium || !userProfile.enable_subtasks) return;
+    const taskIdx = tasks.findIndex(t => t.id === taskId);
+    if (taskIdx === -1 || !tasks[taskIdx].subtasks) return;
+    const updatedSubtasks = tasks[taskIdx].subtasks!.map(sub => sub.id === subtaskId ? { ...sub, is_completed: completed } : sub);
+    try {
+      await supabase.from('tasks').update({ subtasks: updatedSubtasks, updated_at: new Date().toISOString() })
+        .eq('id', taskId).eq('user_id', userProfile.id);
+      const newTasks = [...tasks];
+      newTasks[taskIdx] = { ...newTasks[taskIdx], subtasks: updatedSubtasks };
+      setTasks(newTasks);
+    } catch (error: any) { showAlert("Erreur", "MàJ sous-tâche: " + error.message, "error"); }
+  };
 
-  // Fonction pour obtenir le label du bouton de filtre (dépend de `activeFilter` et `categories`)
+  const handleTogglePin = async (taskId: string) => {
+    if (!userProfile?.id || !isUserPremium || !userProfile.enable_pinned_tasks) {
+      showAlert("Accès Premium", "Épinglage pour Premium.", "warning"); return;
+    }
+    const taskIdx = tasks.findIndex(t => t.id === taskId);
+    if (taskIdx === -1) return;
+    const newPinStatus = !tasks[taskIdx].is_pinned;
+    try {
+      await supabase.from('tasks').update({ is_pinned: newPinStatus, updated_at: new Date().toISOString() })
+        .eq('id', taskId).eq('user_id', userProfile.id);
+      const newTasks = tasks.map(t => t.id === taskId ? { ...t, is_pinned: newPinStatus } : t)
+        .sort((a, b) => {
+            if (a.is_pinned && !b.is_pinned) return -1; if (!a.is_pinned && b.is_pinned) return 1;
+            return a.date.getTime() - b.date.getTime();
+        });
+      setTasks(newTasks);
+      showAlert(newPinStatus ? "Tâche épinglée" : "Tâche désépinglée", "Ok.", "success");
+    } catch (error: any) { showAlert("Erreur", "Épinglage: " + error.message, "error"); }
+  };
+
+  const filteredTasks = useMemo(() => tasks.filter(task => {
+    if (activeFilter === 'all') return true;
+    return task.categoryId === activeFilter;
+  }), [tasks, activeFilter]);
+
+  const { pinnedTasksDisplay, regularTasksDisplay } = useMemo(() => {
+    if (!isUserPremium || !userProfile?.enable_pinned_tasks) {
+      return { pinnedTasksDisplay: [], regularTasksDisplay: filteredTasks };
+    }
+    const Pinned: Task[] = []; const Regular: Task[] = [];
+    filteredTasks.forEach(task => task.is_pinned ? Pinned.push(task) : Regular.push(task));
+    Pinned.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()); // Tri secondaire
+    return { pinnedTasksDisplay: Pinned, regularTasksDisplay: Regular };
+  }, [filteredTasks, isUserPremium, userProfile]);
+
   const getFilterButtonLabel = () => {
     if (activeFilter === 'all') return 'Filtrer les tâches';
     const category = categories.find(cat => cat.id === activeFilter);
-    return category ? category.name : 'Catégorie'; // Fallback si la catégorie n'est pas trouvée
+    return category ? category.name : 'Catégorie';
   };
 
-  // Affichage conditionnel du message de bienvenue
   if (showWelcome) {
     return (
       <div className="min-h-screen bg-black flex justify-center items-center">
@@ -414,22 +400,33 @@ const Index = () => {
     );
   }
 
-  // Rendu principal du composant
+  if (loadingProfile || isLoadingPageData) {
+    return (
+      <div className="min-h-screen flex justify-center items-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+  if (!userProfile && !loadingProfile) { navigate('/auth'); return null; }
 
-
-  // Rendu principal du composant
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
+      {/* VOTRE HEADER ORIGINAL - AUCUNE MODIFICATION DE STRUCTURE ICI */}
       <header className={
         `border-b bg-white/50 backdrop-blur-sm sticky top-16 z-10 transition-transform duration-300 ${isHeaderVisible ? 'translate-y-0' : '-translate-y-full'}`
       }>
-        <div className="max-w-7xl mx-auto flex flex-col gap-4 items-center justify-center py-8">
-          <div className="flex items-center gap-4">
-            <AddTaskDialog onAdd={handleAddTask} categories={categories} isUserPremium={isUserPremium} />
+        <div className="max-w-7xl mx-auto flex flex-col gap-4 items-center justify-center py-8"> {/* Changé sm:flex-row et sm:py-6 en flex-col et py-8 pour matcher votre version */}
+          <div className="flex items-center gap-4"> {/* Changé sm:gap-4 et sm:mb-0 en juste gap-4 */}
+            <AddTaskDialog
+                onAdd={handleAddTask} // Pass la fonction mise à jour
+                categories={categories}
+                isUserPremium={isUserPremium}
+                profile={userProfile} // Passer le profil pour les options avancées
+            />
             <LayoutSettings />
           </div>
-          <div className="flex gap-2 mt-4">
+          <div className="flex gap-2 mt-4"> {/* Reste mt-4 comme dans votre version */}
             <Button
               variant={activeFilter === 'all' ? 'default' : 'outline'}
               onClick={() => setActiveFilter('all')}
@@ -447,70 +444,85 @@ const Index = () => {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Filtrer par catégorie</DropdownMenuLabel>
-                
                 {categories.length > 0 && <DropdownMenuSeparator />}
                 {categories.map(category => {
-                  const Icon = category.logo && (LucideIcons as any)[category.logo]
-                    ? (LucideIcons as any)[category.logo] as LucideIcons.LucideIcon
-                    : null; // Fallback si logo non trouvé ou pas une icône Lucide
+                  const Icon = category.logo && (LucideIcons as any)[category.logo] ? (LucideIcons as any)[category.logo] as LucideIcons.LucideIcon : null;
                   return (
                     <DropdownMenuItem key={category.id} onSelect={() => setActiveFilter(category.id)}>
-                       {Icon ? <Icon size={16} className="mr-2" /> : <span className="mr-2 w-4 text-center">{category.logo || '•'}</span>}
+                       {Icon ? <Icon size={16} className="mr-2" /> : <span className="mr-2 w-4 text-center">{category.logo?.charAt(0) || '•'}</span>}
                       {category.name}
                     </DropdownMenuItem>
                   );
                 })}
-                {categories.length === 0 && !isUserPremium && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem disabled>Créez des catégories (Premium)</DropdownMenuItem>
-                  </>
-                )}
-                 {categories.length === 0 && isUserPremium && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem disabled>Aucune catégorie créée</DropdownMenuItem>
-                  </>
-                )}
+                {categories.length === 0 && !isUserPremium && (<> <DropdownMenuSeparator /> <DropdownMenuItem disabled>Créez catégories (Premium)</DropdownMenuItem> </>)}
+                {categories.length === 0 && isUserPremium && (<> <DropdownMenuSeparator /> <DropdownMenuItem disabled>Aucune catégorie créée</DropdownMenuItem> </>)}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
       </header>
-      {/* <br /> Il n'est généralement pas recommandé d'utiliser <br /> pour l'espacement, préférez les marges/paddings CSS */}
       
-      <main className={`max-w-7xl mx-auto p-4 mt-4 layout-${layoutMode}`}> {/* mt-4 ajouté pour remplacer <br /> */}
+      <main className={`max-w-7xl mx-auto p-4 mt-4 layout-${layoutMode}`}>
+        {isUserPremium && userProfile?.enable_pinned_tasks && pinnedTasksDisplay.length > 0 && (
+            <div className="mb-8">
+                <h2 className="text-xl font-semibold mb-3 flex items-center text-primary">
+                    <PinIconLucide className="mr-2 h-5 w-5" />
+                    Tâches Épinglées
+                </h2>
+                <TaskTimeline
+                    tasks={pinnedTasksDisplay}
+                    onComplete={handleCompleteTask} onDelete={handleDeleteTask} onEdit={(id, title, desc, date, catId, urg) => {
+                        const taskToEdit = tasks.find(t => t.id === id);
+                        setEditingTask(taskToEdit || null); // Ouvre EditTaskDialog avec la tâche complète
+                    }}
+                    categories={categories} isUserPremium={isUserPremium}
+                    profile={userProfile} onUpdateSubtask={handleUpdateSubtask} onTogglePin={handleTogglePin}
+                />
+                <Separator className="my-6" />
+            </div>
+        )}
+        {(isUserPremium && userProfile?.enable_pinned_tasks && pinnedTasksDisplay.length > 0 && regularTasksDisplay.length > 0) && (
+             <h2 className="text-xl font-semibold mb-3 text-foreground/80">Autres tâches</h2>
+        )}
         <TaskTimeline
-          tasks={filteredTasks}
-          onComplete={handleCompleteTask} // Changé
-          onDelete={handleDeleteTask}     // Changé
-          onEdit={handleEditTask} // handleEditTask doit être mis à jour
-          categories={categories} // Passez la liste complète des catégories
-          isUserPremium={isUserPremium}
+          tasks={regularTasksDisplay}
+          onComplete={handleCompleteTask} onDelete={handleDeleteTask} onEdit={(id, title, desc, date, catId, urg) => {
+            const taskToEdit = tasks.find(t => t.id === id);
+            setEditingTask(taskToEdit || null);
+          }}
+          categories={categories} isUserPremium={isUserPremium}
+          profile={userProfile} onUpdateSubtask={handleUpdateSubtask} onTogglePin={handleTogglePin}
         />
-         {tasks.length === 0 && profileChecked && ( // Message si aucune tâche, même si des filtres sont actifs mais ne retournent rien
+         {tasks.length === 0 && !isLoadingPageData && (
           <div className="text-center py-10">
-            <p className="text-lg text-muted-foreground">
-              {activeFilter === 'all' ? "Vous n'avez aucune tâche pour le moment." : "Aucune tâche ne correspond à vos filtres."}
-            </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              {activeFilter === 'all' ? 'Cliquez sur "Nouvelle Tâche" pour commencer.' : "Essayez d'autres filtres ou ajoutez des tâches."}
-            </p>
+            <p className="text-lg text-muted-foreground">{activeFilter === 'all' ? "Aucune tâche." : "Aucune tâche pour ce filtre."}</p>
+            <p className="text-sm text-muted-foreground mt-2">{activeFilter === 'all' ? 'Cliquez "Nouvelle Tâche".' : "Essayez d'autres filtres."}</p>
           </div>
         )}
       </main>
 
-      {profileChecked && showPremiumPopup && !isUserPremium && (
+      {!loadingProfile && userProfile && showPremiumPopup && !isUserPremium && (
         <PremiumPopup onClose={() => setShowPremiumPopup(false)} />
       )}
-
-      {profileChecked && (
+      {!loadingProfile && userProfile && (
         <FloatingActionButton
-          onAddCategory={handleAddCategory}
+          onAddCategory={handleAddCategory} isUserPremium={isUserPremium}
+          userCategories={categories} onUpdateCategory={handleUpdateCategory} onDeleteCategory={handleDeleteCategory} 
+        />
+      )}
+
+      {/* Dialogues : on passe la fonction handleAddTask/handleEditTask mise à jour */}
+      {/* L'ouverture/fermeture d'AddTaskDialog est gérée par le composant lui-même ou par un état ici si besoin */}
+      {/* Pour EditTaskDialog, on utilise l'état `editingTask` */}
+      {editingTask && (
+        <EditTaskDialog
+          isOpen={!!editingTask}
+          onClose={() => setEditingTask(null)}
+          task={editingTask} // Passe la tâche complète à éditer
+          onEdit={handleEditTask} // La signature a été mise à jour
+          categories={categories}
           isUserPremium={isUserPremium}
-          userCategories={categories} 
-          onUpdateCategory={handleUpdateCategory} 
-          onDeleteCategory={handleDeleteCategory} 
+          profile={userProfile}
         />
       )}
     </div>

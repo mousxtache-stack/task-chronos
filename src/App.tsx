@@ -19,6 +19,8 @@ import PaymentStatusPage from './pages/PaymentStatusPage';
 import FAQPage from './pages/FAQPage'; 
 import LegalNotice from './pages/LegalNoticePage.tsx';
 import InformationHubPage from './pages/InformationHubPage.tsx';
+import { FocusTimerProvider } from './lib/context/FocusTimerContext';
+import { ProfileProvider } from '@/lib/context/ProfileContext'; 
 
 
 const queryClient = new QueryClient();
@@ -52,8 +54,10 @@ const App = () => {
         <ThemeProvider>
           <LayoutProvider>
             <AlertProvider>
+            <ProfileProvider>
               <Toaster />
               <Sonner />
+              <FocusTimerProvider>
               <BrowserRouter>
                 <Routes>
                   <Route
@@ -97,6 +101,8 @@ const App = () => {
                   <Route path="/InformationHubPage" element={<InformationHubPage />} />
                 </Routes>
               </BrowserRouter>
+              </FocusTimerProvider>
+              </ProfileProvider>
             </AlertProvider>
           </LayoutProvider>
         </ThemeProvider>
