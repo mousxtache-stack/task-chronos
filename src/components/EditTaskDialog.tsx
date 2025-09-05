@@ -1,6 +1,6 @@
 // src/components/EditTaskDialog.tsx
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 // MODIFIÉ: Ajout de Eye, EyeOff, Settings2
@@ -37,7 +37,7 @@ export function EditTaskDialog({ task, onEdit, categories, isUserPremium: propIs
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState<Date | undefined>(undefined);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>(NO_CATEGORY_VALUE);
   const { toast } = useToast();
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [subtasksInput, setSubtasksInput] = useState("");
@@ -92,11 +92,12 @@ export function EditTaskDialog({ task, onEdit, categories, isUserPremium: propIs
   const urgencyBarHeights = [ "h-2", "h-3", "h-4", "h-5" ];
 
   return (
-    <Dialog open={isOpen} onOpenChange={(openStatus) => !openStatus && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(openStatus) => { if (!openStatus) onClose?.(); }}>
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="text-2xl font-semibold">Modifier la tâche</DialogTitle>
+          <DialogDescription>Modifiez le titre, la description, la date et la catégorie.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-6">
           {/* Champs Titre, Description, Date, Catégorie (inchangés) */}

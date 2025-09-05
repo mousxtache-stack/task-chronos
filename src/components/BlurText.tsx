@@ -94,9 +94,9 @@ const BlurText: React.FC<BlurTextProps> = ({
         <AnimatedSpan
           key={index}
           style={{
-            filter: props.filter,
-            opacity: props.opacity,
-            transform: props.transform,
+            filter: (props as any).filter,
+            opacity: (props as any).opacity,
+            transform: (props as any).transform,
           }}
           className="inline-block"
         >

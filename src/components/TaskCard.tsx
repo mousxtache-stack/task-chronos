@@ -165,7 +165,7 @@ export function TaskCard({
                     <ListChecks size={14} className="mr-1.5" /> Sous-étapes ({task.subtasks.filter(s => s.is_completed).length}/{task.subtasks.length})
                   </h4>
                   {task.subtasks.length > 2 && (
-                    <Button variant="link" size="xs" className="text-xs h-auto p-0" onClick={() => setShowAllSubtasks(!showAllSubtasks)}>
+                    <Button variant="link" size="sm" className="text-xs h-auto p-0" onClick={() => setShowAllSubtasks(!showAllSubtasks)}>
                         {showAllSubtasks ? "Moins" : "Voir tout"}
                     </Button>
                   )}
@@ -231,19 +231,14 @@ export function TaskCard({
             <div className={cn("flex items-center gap-1 transition-all duration-300 ease-in-out transform",
                 showControls ? "opacity-100 max-w-xs translate-x-0" : "opacity-0 max-w-0 overflow-hidden -translate-x-2 pointer-events-none"
               )}>
-              {/* EditTaskDialog est appelé via son trigger */}
-              <EditTaskDialog
-                task={task}
-                onEdit={onEdit} // La signature de onEdit est mise à jour
-                categories={categories}
-                isUserPremium={isUserPremium} // isUserPremium (dérivé de profile) est passé
-                profile={profile} // profile complet est passé
-                trigger={ // Votre trigger original
-                  <button aria-label="Modifier la tâche" className={cn("p-1 rounded-full hover:bg-secondary transition-colors", isGridMode && "p-2")} title="Modifier la tâche">
-                    <PencilIcon size={isGridMode ? 22 : 16} className="text-amber-500" />
-                  </button>
-                }
-              />
+              <button
+                onClick={() => onEdit(task.id, task.title, task.description || "", task.date, task.categoryId, task.urgency)}
+                aria-label="Modifier la tâche"
+                className={cn("p-1 rounded-full hover:bg-secondary transition-colors", isGridMode && "p-2")}
+                title="Modifier la tâche"
+              >
+                <PencilIcon size={isGridMode ? 22 : 16} className="text-amber-500" />
+              </button>
               <button onClick={() => onDelete(task.id)} aria-label="Supprimer la tâche"
                 className={cn("p-1 rounded-full hover:bg-destructive/10 transition-colors", isGridMode && "p-2")}
                 title="Supprimer la tâche">
