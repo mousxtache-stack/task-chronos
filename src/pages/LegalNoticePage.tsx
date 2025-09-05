@@ -27,8 +27,8 @@ const LegalNoticePage = () => {
     </h2>
   );
 
-  const Paragraph: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <p className="text-gray-300 dark:text-gray-400 mb-3 leading-relaxed">
+  const Paragraph: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = "" }) => (
+    <p className={`text-gray-300 dark:text-gray-400 mb-3 leading-relaxed ${className}`}>
       {children}
     </p>
   );

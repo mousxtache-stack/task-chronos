@@ -74,7 +74,7 @@ const Index = () => {
     try {
       const { data, error } = await supabase
         .from("tasks")
-        .select("*, category:categories(name)")
+        .select("*")
         .eq('user_id', userId)
         .order("is_pinned", { ascending: false, nullsFirst: false })
         .order("date", { ascending: true })
@@ -88,14 +88,14 @@ const Index = () => {
           description: task.description || undefined,
           date: new Date(task.date),
           completed: task.completed || false,
-          categoryId: task.category_id || undefined,
-          category_name: task.category?.name || undefined,
-          urgency: task.urgency === null || typeof task.urgency === 'undefined' ? undefined : Number(task.urgency),
-          user_id: task.user_id,
-          created_at: task.created_at,
-          subtasks: task.subtasks || [],
-          is_pinned: task.is_pinned || false,
-          recurrence_rule: task.recurrence_rule || null,
+          categoryId: (task as any).category_id || undefined,
+          category_name: undefined,
+          urgency: (task as any).urgency === null || typeof (task as any).urgency === 'undefined' ? undefined : Number((task as any).urgency),
+          user_id: (task as any).user_id,
+          created_at: (task as any).created_at,
+          subtasks: (task as any).subtasks || [],
+          is_pinned: (task as any).is_pinned || false,
+          recurrence_rule: (task as any).recurrence_rule || null,
         }));
         setTasks(formattedTasks);
       }
@@ -218,17 +218,17 @@ const Index = () => {
         subtasks: finalSubtasks, is_pinned: false, recurrence_rule: finalRecurrenceRule,
       };
       const { data: newTaskData, error } = await supabase.from("tasks").insert([taskToInsert])
-        .select("*, category:categories(name)").single();
+        .select("*").single();
       if (error) throw error;
       if (newTaskData) {
         const newTask: Task = {
           id: newTaskData.id, title: newTaskData.title, description: newTaskData.description || undefined,
           date: new Date(newTaskData.date), completed: newTaskData.completed || false,
-          categoryId: newTaskData.category_id || undefined, category_name: newTaskData.category?.name || undefined,
-          urgency: newTaskData.urgency === null || typeof newTaskData.urgency === 'undefined' ? undefined : Number(newTaskData.urgency),
+          categoryId: (newTaskData as any).category_id || undefined, category_name: undefined,
+          urgency: (newTaskData as any).urgency === null || typeof (newTaskData as any).urgency === 'undefined' ? undefined : Number((newTaskData as any).urgency),
           user_id: newTaskData.user_id, created_at: newTaskData.created_at,
-          subtasks: newTaskData.subtasks || [], is_pinned: newTaskData.is_pinned || false,
-          recurrence_rule: newTaskData.recurrence_rule || null,
+          subtasks: (newTaskData as any).subtasks || [], is_pinned: (newTaskData as any).is_pinned || false,
+          recurrence_rule: (newTaskData as any).recurrence_rule || null,
         };
         setTasks(prev => [...prev, newTask].sort((a, b) => {
             if (a.is_pinned && !b.is_pinned) return -1; if (!a.is_pinned && b.is_pinned) return 1;
@@ -315,15 +315,15 @@ const Index = () => {
       if (finalRecurrenceRule !== undefined) updatePayload.recurrence_rule = finalRecurrenceRule;
 
       const { data, error } = await supabase.from("tasks").update(updatePayload).eq("id", id).eq("user_id", userProfile.id)
-        .select("*, category:categories(name)").single();
+        .select("*").single();
       if (error) throw error;
       if (data) {
         const updatedTask: Task = {
           id: data.id, title: data.title, description: data.description || undefined, date: new Date(data.date),
-          completed: data.completed || false, categoryId: data.category_id || undefined, category_name: data.category?.name || undefined,
-          urgency: data.urgency === null || typeof data.urgency === 'undefined' ? undefined : Number(data.urgency),
-          user_id: data.user_id, created_at: data.created_at, updated_at: data.updated_at,
-          subtasks: data.subtasks || [], is_pinned: data.is_pinned || false, recurrence_rule: data.recurrence_rule || null,
+          completed: data.completed || false, categoryId: (data as any).category_id || undefined, category_name: undefined,
+          urgency: (data as any).urgency === null || typeof (data as any).urgency === 'undefined' ? undefined : Number((data as any).urgency),
+          user_id: data.user_id, created_at: data.created_at, updated_at: (data as any).updated_at,
+          subtasks: (data as any).subtasks || [], is_pinned: (data as any).is_pinned || false, recurrence_rule: (data as any).recurrence_rule || null,
         };
         setTasks(tasks.map(t => (t.id === id ? updatedTask : t)).sort((a, b) => {
             if (a.is_pinned && !b.is_pinned) return -1; if (!a.is_pinned && b.is_pinned) return 1;

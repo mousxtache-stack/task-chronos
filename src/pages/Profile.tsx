@@ -38,8 +38,8 @@ import {
 // Si ce n'est pas le cas, ProfileData ici peut être une extension
 
 // Type pour l'état local des formulaires sur CETTE page
-interface PageProfileState extends Omit<AppProfileData, 'id'> { // Omit id car il vient de user.id
-  // Pas besoin de redéfinir si AppProfileData est complet
+interface PageProfileState extends Omit<AppProfileData, 'id'> {
+  email?: string;
 }
 
 
@@ -189,11 +189,7 @@ export function Profile() {
       showAlert(
         "Fonctionnalité Premium",
         "Cette fonctionnalité est réservée aux membres Premium.",
-        "info",
-        {
-          label: "Découvrir Premium",
-          onClick: () => navigate('/premiumpage')
-        }
+        "info"
       );
       return;
     }
@@ -247,11 +243,7 @@ export function Profile() {
       showAlert(
         "Fonctionnalité Premium",
         "Le choix de thèmes personnalisés est réservé aux membres Premium.",
-        "info",
-        {
-            label: "Découvrir Premium",
-            onClick: () => navigate('/premiumpage')
-        }
+        "info"
       );
       return;
     }
@@ -390,7 +382,6 @@ export function Profile() {
 
             <Accordion
               type="multiple"
-              collapsible
               className="w-full"
               value={openAccordionItems}
               onValueChange={setOpenAccordionItems}
